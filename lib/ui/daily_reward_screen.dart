@@ -35,7 +35,7 @@ class DailyRewardScreen extends StatelessWidget {
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 4,
-                    childAspectRatio: 0.8,
+                    childAspectRatio: 0.62,
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
                     children: [
@@ -53,11 +53,16 @@ class DailyRewardScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text('Day ${i + 1}'),
-                              const Icon(
-                                Icons.monetization_on,
+                              Icon(
+                                DailyRewardEngine.dashRefillsByDay[i] > 0
+                                    ? Icons.bolt
+                                    : Icons.monetization_on,
                                 color: Colors.amber,
                               ),
-                              Text('${DailyRewardEngine.coinsByDay[i]}'),
+                              Text(
+                                _rewardLabel(i),
+                                textAlign: TextAlign.center,
+                              ),
                               if (i < claimedThrough)
                                 const Icon(Icons.check, size: 16),
                             ],
@@ -87,4 +92,14 @@ class DailyRewardScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+String _rewardLabel(int day) {
+  final parts = <String>[
+    if (DailyRewardEngine.coinsByDay[day] > 0)
+      '${DailyRewardEngine.coinsByDay[day]}',
+    if (DailyRewardEngine.dashRefillsByDay[day] > 0) 'Dash Refill',
+    if (DailyRewardEngine.streakFreezesByDay[day] > 0) '+ Freeze',
+  ];
+  return parts.join('\n');
 }

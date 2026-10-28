@@ -58,6 +58,9 @@ class WingyRun {
   int maxStreak = 0;
   int perfectPasses = 0;
   int maxBloomBonus = 0;
+
+  /// Perfect passes that earned a Bloom bonus of +3 or more.
+  int bloomHits = 0;
   int orbsCollected = 0;
   int coins = 0;
   int meter;
@@ -315,6 +318,7 @@ class WingyRun {
           final bloom = min(perfectStreak - 2, WingyWorld.bloomMax);
           gained += bloom;
           maxBloomBonus = max(maxBloomBonus, bloom);
+          if (bloom >= 3) bloomHits++;
         }
         _events.add(
           RunEvent(RunEventType.perfect, points: gained, x: p.x, y: y),
