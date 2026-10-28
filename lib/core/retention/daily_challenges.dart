@@ -2,11 +2,14 @@ import 'dart:math';
 
 /// What a challenge measures. Events are fed in by the profile store.
 enum ChallengeKind {
-  scorePoints,
-  clearLines,
-  placePieces,
-  playGames,
-  makeCombo,
+  scoreInRun,
+  passTotal,
+  perfectRun,
+  orbsTotal,
+  dashUses,
+  dashShatters,
+  bloom,
+  playRuns,
 }
 
 class ChallengeTemplate {
@@ -111,36 +114,54 @@ abstract final class DailyChallengeEngine {
 
   static const List<ChallengeTemplate> templates = [
     ChallengeTemplate(
-      ChallengeKind.scorePoints,
-      'Score {n} points in one game',
-      [300, 600, 1000],
-      [20, 40, 80],
+      ChallengeKind.scoreInRun,
+      'Score {n} points in one run',
+      [15, 30, 50],
+      [25, 40, 60],
       isMax: true,
     ),
     ChallengeTemplate(
-      ChallengeKind.clearLines,
-      'Clear {n} lines',
-      [8, 15, 25],
-      [20, 40, 80],
+      ChallengeKind.passTotal,
+      'Pass {n} spire pairs today',
+      [40, 80, 150],
+      [25, 40, 60],
     ),
     ChallengeTemplate(
-      ChallengeKind.placePieces,
-      'Place {n} pieces',
-      [30, 60, 100],
-      [20, 40, 80],
+      ChallengeKind.perfectRun,
+      'Make {n} Perfect passes in a row',
+      [3, 5, 8],
+      [25, 40, 60],
+      isMax: true,
     ),
     ChallengeTemplate(
-      ChallengeKind.playGames,
-      'Play {n} games',
+      ChallengeKind.orbsTotal,
+      'Collect {n} glow orbs today',
+      [6, 12, 20],
+      [25, 40, 60],
+    ),
+    ChallengeTemplate(
+      ChallengeKind.dashUses,
+      'Use Glow Dash {n} times',
+      [1, 2, 3],
+      [25, 40, 60],
+    ),
+    ChallengeTemplate(
+      ChallengeKind.dashShatters,
+      'Shatter {n} spire pairs with Dash',
       [2, 4, 6],
-      [20, 40, 80],
+      [25, 40, 60],
     ),
     ChallengeTemplate(
-      ChallengeKind.makeCombo,
-      'Reach a x{n} combo',
-      [2, 3, 4],
-      [20, 40, 80],
-      isMax: true,
+      ChallengeKind.bloom,
+      'Reach a Bloom bonus of +3 or more {n} times',
+      [1, 2],
+      [30, 50],
+    ),
+    ChallengeTemplate(
+      ChallengeKind.playRuns,
+      'Play {n} runs',
+      [3, 5],
+      [25, 40],
     ),
   ];
 
@@ -151,6 +172,8 @@ abstract final class DailyChallengeEngine {
     final rng = Random(today);
     final pool = [...templates]..shuffle(rng);
     final picks = pool.take(perDay).toList();
+    // Slot i is the i-th difficulty; templates with fewer tiers use their hardest tier.
+    int tier(List<int> v, int i) => v[min(i, v.length - 1)];
     return DailyChallengesState(
       day: today,
       challenges: [
@@ -160,10 +183,10 @@ abstract final class DailyChallengeEngine {
             kind: picks[i].kind,
             description: picks[i].description.replaceAll(
               '{n}',
-              '${picks[i].targets[i]}',
+              '${tier(picks[i].targets, i)}',
             ),
-            target: picks[i].targets[i],
-            reward: picks[i].rewards[i],
+            target: tier(picks[i].targets, i),
+            reward: tier(picks[i].rewards, i),
           ),
       ],
     );

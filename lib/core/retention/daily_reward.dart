@@ -21,18 +21,43 @@ class DailyRewardState {
         );
 }
 
-class DailyRewardClaim {
-  const DailyRewardClaim(this.state, this.coins, this.day);
-  final DailyRewardState state;
+/// What one day of the cycle gives.
+class DailyRewardItem {
+  const DailyRewardItem({this.coins = 0, this.refills = 0, this.freezes = 0});
   final int coins;
+
+  /// Dash Refill stock items.
+  final int refills;
+
+  /// Streak freezes.
+  final int freezes;
+}
+
+class DailyRewardClaim {
+  const DailyRewardClaim(this.state, this.item, this.day);
+  final DailyRewardState state;
+  final DailyRewardItem item;
+  int get coins => item.coins;
+  int get refills => item.refills;
+  int get freezes => item.freezes;
 
   /// Which cycle day (0..6) was claimed.
   final int day;
 }
 
 abstract final class DailyRewardEngine {
-  static const List<int> coinsByDay = [50, 75, 100, 150, 200, 300, 500];
-  static int get cycleLength => coinsByDay.length;
+  /// Wingy's 7-day cycle: coins, Dash Refills on days 4 and 6, a streak freeze on day 7.
+  static const List<DailyRewardItem> rewards = [
+    DailyRewardItem(coins: 30),
+    DailyRewardItem(coins: 40),
+    DailyRewardItem(coins: 50),
+    DailyRewardItem(refills: 1),
+    DailyRewardItem(coins: 70),
+    DailyRewardItem(refills: 1),
+    DailyRewardItem(coins: 150, freezes: 1),
+  ];
+  static List<int> get coinsByDay => [for (final r in rewards) r.coins];
+  static int get cycleLength => rewards.length;
 
   static bool canClaim(DailyRewardState s, int today) =>
       s.lastClaimDay != today;
@@ -53,7 +78,7 @@ abstract final class DailyRewardEngine {
     final day = dayToClaim(s, today);
     return DailyRewardClaim(
       DailyRewardState(nextDay: (day + 1) % cycleLength, lastClaimDay: today),
-      coinsByDay[day],
+      rewards[day],
       day,
     );
   }

@@ -74,7 +74,10 @@ void main() {
       for (var i = 0; i < 3; i++) {
         expect(find.byKey(TestIds.challengeTile(i)), findsOneWidget);
       }
-      expect(find.byKey(TestIds.achievementTile('first_game')), findsOneWidget);
+      expect(
+        find.byKey(TestIds.achievementTile('ach_first_flight')),
+        findsOneWidget,
+      );
     },
   );
 

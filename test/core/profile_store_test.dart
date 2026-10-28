@@ -38,14 +38,14 @@ void main() {
     final p = make();
     await p.init();
     expect(p.dailyRewardAvailable, isTrue);
-    expect(await p.claimDailyReward(), 50);
+    expect(await p.claimDailyReward(), 30);
     expect(p.dailyRewardAvailable, isFalse);
     expect(await p.claimDailyReward(), isNull);
     now = now.add(const Duration(days: 1));
     await p.onAppOpened();
     expect(p.dailyRewardAvailable, isTrue);
-    expect(await p.claimDailyReward(), 75);
-    expect(p.data.coins, 125);
+    expect(await p.claimDailyReward(), 40);
+    expect(p.data.coins, 70);
   });
 
   test('setting the clock back does not allow a second claim', () async {
@@ -84,17 +84,23 @@ void main() {
     await p.init();
     final unlocked = await p.recordGameFinished(
       const GameSummary(
-        score: 1500,
-        linesCleared: 6,
-        piecesPlaced: 20,
-        maxCombo: 3,
+        score: 52,
+        passes: 20,
+        maxPerfectStreak: 4,
+        orbs: 5,
+        coins: 15,
       ),
     );
-    expect(p.data.bestScore, 1500);
+    expect(p.data.bestScore, 52);
     expect(p.data.stats.gamesPlayed, 1);
-    expect(unlocked.map((a) => a.id), contains('first_game'));
-    expect(unlocked.map((a) => a.id), contains('score_1000'));
-    expect(p.data.coins, greaterThan(0)); // achievement rewards
+    expect(p.data.stats.totalPasses, 20);
+    expect(p.data.stats.totalOrbs, 5);
+    expect(
+      unlocked.map((a) => a.id),
+      containsAll(['ach_first_flight', 'ach_ten_gaps', 'ach_gold_wings']),
+    );
+    // Run coins plus achievement rewards.
+    expect(p.data.coins, 15 + unlocked.fold<int>(0, (n, a) => n + a.reward));
     expect(p.data.challenges.challenges, hasLength(3));
   });
 
@@ -112,12 +118,7 @@ void main() {
     expect(await p.claimDailyReward(), isNull);
     expect(p.challenges, isEmpty);
     final unlocked = await p.recordGameFinished(
-      const GameSummary(
-        score: 5,
-        linesCleared: 0,
-        piecesPlaced: 1,
-        maxCombo: 1,
-      ),
+      const GameSummary(score: 5, passes: 1),
     );
     expect(unlocked, isEmpty);
   });

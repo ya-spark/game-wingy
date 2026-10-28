@@ -12,6 +12,10 @@ class SaveData {
     this.soundOn = true,
     this.vibrationOn = true,
     this.remindersOn = false,
+    this.reduceMotion = false,
+    this.dashRefills = 0,
+    this.adRefillDay = -1,
+    this.adRefillsToday = 0,
     this.lastSeenMs = 0,
     this.savedAtMs = 0,
     this.dailyReward = const DailyRewardState(),
@@ -31,6 +35,16 @@ class SaveData {
   final bool soundOn;
   final bool vibrationOn;
   final bool remindersOn;
+
+  /// Disables screen shake and parallax.
+  final bool reduceMotion;
+
+  /// Dash Refill stock: each starts one run with a full Glow Dash meter.
+  final int dashRefills;
+
+  /// Day index and count of Dash Refills granted by rewarded ads (max 3 per day).
+  final int adRefillDay;
+  final int adRefillsToday;
 
   /// Latest time ever seen (UTC ms), for the backwards-clock guard.
   final int lastSeenMs;
@@ -53,6 +67,10 @@ class SaveData {
     bool? soundOn,
     bool? vibrationOn,
     bool? remindersOn,
+    bool? reduceMotion,
+    int? dashRefills,
+    int? adRefillDay,
+    int? adRefillsToday,
     int? lastSeenMs,
     int? savedAtMs,
     DailyRewardState? dailyReward,
@@ -68,6 +86,10 @@ class SaveData {
     soundOn: soundOn ?? this.soundOn,
     vibrationOn: vibrationOn ?? this.vibrationOn,
     remindersOn: remindersOn ?? this.remindersOn,
+    reduceMotion: reduceMotion ?? this.reduceMotion,
+    dashRefills: dashRefills ?? this.dashRefills,
+    adRefillDay: adRefillDay ?? this.adRefillDay,
+    adRefillsToday: adRefillsToday ?? this.adRefillsToday,
     lastSeenMs: lastSeenMs ?? this.lastSeenMs,
     savedAtMs: savedAtMs ?? this.savedAtMs,
     dailyReward: dailyReward ?? this.dailyReward,
@@ -86,6 +108,10 @@ class SaveData {
     'soundOn': soundOn,
     'vibrationOn': vibrationOn,
     'remindersOn': remindersOn,
+    'reduceMotion': reduceMotion,
+    'dashRefills': dashRefills,
+    'adRefillDay': adRefillDay,
+    'adRefillsToday': adRefillsToday,
     'lastSeenMs': lastSeenMs,
     'savedAtMs': savedAtMs,
     'dailyReward': dailyReward.toJson(),
@@ -104,6 +130,10 @@ class SaveData {
     soundOn: j['soundOn'] as bool? ?? true,
     vibrationOn: j['vibrationOn'] as bool? ?? true,
     remindersOn: j['remindersOn'] as bool? ?? false,
+    reduceMotion: j['reduceMotion'] as bool? ?? false,
+    dashRefills: (j['dashRefills'] as num?)?.toInt() ?? 0,
+    adRefillDay: (j['adRefillDay'] as num?)?.toInt() ?? -1,
+    adRefillsToday: (j['adRefillsToday'] as num?)?.toInt() ?? 0,
     lastSeenMs: (j['lastSeenMs'] as num?)?.toInt() ?? 0,
     savedAtMs: (j['savedAtMs'] as num?)?.toInt() ?? 0,
     dailyReward: DailyRewardState.fromJson(_map(j['dailyReward'])),

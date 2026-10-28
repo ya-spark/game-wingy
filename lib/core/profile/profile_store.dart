@@ -7,22 +7,37 @@ import '../purchase/purchase_service.dart';
 import '../retention/achievements.dart';
 import '../retention/daily_challenges.dart';
 import '../retention/daily_reward.dart';
+import '../retention/economy.dart';
 import '../retention/streaks.dart';
 import '../save/save_data.dart';
 import '../save/save_service.dart';
 
-/// Result of one finished game, fed into stats / challenges / achievements.
+/// Result of one finished run, fed into stats / challenges / achievements.
 class GameSummary {
   const GameSummary({
     required this.score,
-    required this.linesCleared,
-    required this.piecesPlaced,
-    required this.maxCombo,
+    this.passes = 0,
+    this.maxPerfectStreak = 0,
+    this.orbs = 0,
+    this.dashUses = 0,
+    this.dashShatters = 0,
+    this.bloomHits = 0,
+    this.coins = 0,
   });
   final int score;
-  final int linesCleared;
-  final int piecesPlaced;
-  final int maxCombo;
+
+  /// Spire pairs passed (including Dash-shattered ones).
+  final int passes;
+  final int maxPerfectStreak;
+  final int orbs;
+  final int dashUses;
+  final int dashShatters;
+
+  /// Perfect passes that earned a Bloom bonus of +3 or more.
+  final int bloomHits;
+
+  /// Coins earned this run (orb coins plus 1 per 5 points); added to the balance.
+  final int coins;
 }
 
 /// Holds the player's [SaveData], applies the retention engines and persists every change.
@@ -68,6 +83,16 @@ class ProfileStore extends ChangeNotifier {
           bestStreak: u.state.best > d.stats.bestStreak ? u.state.best : null,
         ),
       );
+      // A streak freeze that covered missed days also keeps the daily reward cycle going.
+      final last = d.dailyReward.lastClaimDay;
+      if (u.freezesUsed > 0 && last >= 0 && day - last - 1 <= u.freezesUsed) {
+        d = d.copyWith(
+          dailyReward: DailyRewardState(
+            nextDay: d.dailyReward.nextDay,
+            lastClaimDay: day - 1,
+          ),
+        );
+      }
     }
     if (retention.dailyChallenges) {
       d = d.copyWith(
@@ -98,11 +123,28 @@ class ProfileStore extends ChangeNotifier {
     if (!retention.dailyReward) return null;
     final c = DailyRewardEngine.claim(_data.dailyReward, today);
     if (c == null) return null;
+    final streak = _data.streak;
     await _commit(
-      _data.copyWith(dailyReward: c.state, coins: _data.coins + c.coins),
+      _data.copyWith(
+        dailyReward: c.state,
+        coins: _data.coins + c.coins,
+        dashRefills: _data.dashRefills + c.refills,
+        streak: c.freezes > 0
+            ? streak.copyWith(
+                freezes: (streak.freezes + c.freezes).clamp(
+                  0,
+                  StreakEngine.maxFreezes,
+                ),
+              )
+            : null,
+      ),
     );
     return c.coins;
   }
+
+  /// Last claimed reward item, for display after [claimDailyReward].
+  DailyRewardItem rewardForDay(int day) =>
+      DailyRewardEngine.rewards[day % DailyRewardEngine.cycleLength];
 
   // ---- streak -------------------------------------------------------------
 
@@ -129,30 +171,33 @@ class ProfileStore extends ChangeNotifier {
     var d = _data;
     final stats = d.stats.copyWith(
       gamesPlayed: d.stats.gamesPlayed + 1,
-      totalLines: d.stats.totalLines + g.linesCleared,
-      piecesPlaced: d.stats.piecesPlaced + g.piecesPlaced,
       bestScore: g.score > d.stats.bestScore ? g.score : null,
-      maxCombo: g.maxCombo > d.stats.maxCombo ? g.maxCombo : null,
+      totalPasses: d.stats.totalPasses + g.passes,
+      totalOrbs: d.stats.totalOrbs + g.orbs,
+      dashShatters: d.stats.dashShatters + g.dashShatters,
+      maxPerfectStreak: g.maxPerfectStreak > d.stats.maxPerfectStreak
+          ? g.maxPerfectStreak
+          : null,
     );
     d = d.copyWith(
       stats: stats,
+      coins: d.coins + g.coins,
       bestScore: g.score > d.bestScore ? g.score : null,
     );
     if (retention.dailyChallenges) {
       var c = DailyChallengeEngine.ensureToday(d.challenges, today);
-      c = DailyChallengeEngine.record(c, ChallengeKind.playGames, 1);
-      c = DailyChallengeEngine.record(c, ChallengeKind.scorePoints, g.score);
-      c = DailyChallengeEngine.record(
-        c,
-        ChallengeKind.clearLines,
-        g.linesCleared,
-      );
-      c = DailyChallengeEngine.record(
-        c,
-        ChallengeKind.placePieces,
-        g.piecesPlaced,
-      );
-      c = DailyChallengeEngine.record(c, ChallengeKind.makeCombo, g.maxCombo);
+      void rec(ChallengeKind k, int n) {
+        c = DailyChallengeEngine.record(c, k, n);
+      }
+
+      rec(ChallengeKind.playRuns, 1);
+      rec(ChallengeKind.scoreInRun, g.score);
+      rec(ChallengeKind.passTotal, g.passes);
+      rec(ChallengeKind.perfectRun, g.maxPerfectStreak);
+      rec(ChallengeKind.orbsTotal, g.orbs);
+      rec(ChallengeKind.dashUses, g.dashUses);
+      rec(ChallengeKind.dashShatters, g.dashShatters);
+      rec(ChallengeKind.bloom, g.bloomHits);
       d = d.copyWith(challenges: c);
     }
     final r = _unlockAchievements(d);
@@ -195,6 +240,69 @@ class ProfileStore extends ChangeNotifier {
   Future<void> setSound(bool v) => _commit(_data.copyWith(soundOn: v));
   Future<void> setVibration(bool v) => _commit(_data.copyWith(vibrationOn: v));
   Future<void> setReminders(bool v) => _commit(_data.copyWith(remindersOn: v));
+  Future<void> setReduceMotion(bool v) =>
+      _commit(_data.copyWith(reduceMotion: v));
+
+  // ---- Dash Refills and streak freezes -----------------------------------
+
+  int get dashRefills => _data.dashRefills;
+
+  /// Rewarded-ad refills still available today (max [Economy.maxAdRefillsPerDay]).
+  int get adRefillsLeftToday => _data.adRefillDay == today
+      ? (Economy.maxAdRefillsPerDay - _data.adRefillsToday).clamp(
+          0,
+          Economy.maxAdRefillsPerDay,
+        )
+      : Economy.maxAdRefillsPerDay;
+
+  /// Buys one Dash Refill for [Economy.dashRefillCost] coins.
+  Future<bool> buyDashRefill() async {
+    if (_data.coins < Economy.dashRefillCost) return false;
+    await _commit(
+      _data.copyWith(
+        coins: _data.coins - Economy.dashRefillCost,
+        dashRefills: _data.dashRefills + 1,
+      ),
+    );
+    return true;
+  }
+
+  /// Adds one Dash Refill earned from a rewarded ad; false when today's limit is reached.
+  Future<bool> grantAdRefill() async {
+    if (adRefillsLeftToday <= 0) return false;
+    final used = (_data.adRefillDay == today ? _data.adRefillsToday : 0) + 1;
+    await _commit(
+      _data.copyWith(
+        dashRefills: _data.dashRefills + 1,
+        adRefillDay: today,
+        adRefillsToday: used,
+      ),
+    );
+    return true;
+  }
+
+  /// Uses one Dash Refill from stock (start a run with a full meter).
+  Future<bool> consumeDashRefill() async {
+    if (_data.dashRefills <= 0) return false;
+    await _commit(_data.copyWith(dashRefills: _data.dashRefills - 1));
+    return true;
+  }
+
+  bool get canBuyStreakFreeze =>
+      _data.coins >= Economy.streakFreezeCost &&
+      _data.streak.freezes < StreakEngine.maxFreezes;
+
+  /// Buys one streak freeze for [Economy.streakFreezeCost] coins.
+  Future<bool> buyStreakFreeze() async {
+    if (!canBuyStreakFreeze) return false;
+    await _commit(
+      _data.copyWith(
+        coins: _data.coins - Economy.streakFreezeCost,
+        streak: _data.streak.copyWith(freezes: _data.streak.freezes + 1),
+      ),
+    );
+    return true;
+  }
 
   // ---- purchases ----------------------------------------------------------
 
