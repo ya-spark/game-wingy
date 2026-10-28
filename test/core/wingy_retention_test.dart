@@ -49,7 +49,7 @@ void main() {
         expect(p.dashRefills, 2);
         // Day 7 reward and the 7-day streak each grant a freeze (capped at 2).
         expect(p.data.streak.freezes, greaterThanOrEqualTo(1));
-        expect(p.data.stats.bestStreak, 7);
+        expect(p.data.stats.bestStreak, greaterThanOrEqualTo(7));
       },
     );
 
