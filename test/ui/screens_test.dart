@@ -1,21 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:wingy/app.dart';
-import 'package:wingy/core/ads/ad_service.dart';
 import 'package:wingy/core/retention/daily_reward.dart';
 import 'package:wingy/core/services.dart';
-import 'package:wingy/game/flame/block_puzzle_game.dart';
-import 'package:wingy/game/rules/board.dart';
-import 'package:wingy/game/rules/game_state.dart';
-import 'package:wingy/game/rules/piece.dart';
-import 'package:wingy/game/rules/piece_generator.dart';
-import 'package:wingy/ui/game_screen.dart';
 import 'package:wingy/ui/test_ids.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_services.dart';
-import '../helpers/puzzle_bot.dart';
 
 Future<void> pumpApp(WidgetTester tester, Services s) async {
   tester.view.physicalSize = const Size(400, 800);
@@ -44,6 +34,7 @@ void main() {
       TestIds.homeSettings,
       TestIds.homeCoins,
       TestIds.homeBestScore,
+      TestIds.homeBanner,
     ]) {
       expect(find.byKey(k), findsOneWidget, reason: '$k');
     }
@@ -106,128 +97,28 @@ void main() {
     await tester.tap(find.byKey(TestIds.settingsSound));
     await tester.pumpAndSettle();
     expect(s.profile.data.soundOn, isFalse);
+    await tester.tap(find.byKey(TestIds.settingsHaptics));
+    await tester.pumpAndSettle();
+    expect(s.profile.data.vibrationOn, isFalse);
+    await tester.tap(find.byKey(TestIds.settingsReduceMotion));
+    await tester.pumpAndSettle();
+    expect(s.profile.data.reduceMotion, isTrue);
     expect(find.byKey(TestIds.settingsPlayGames), findsOneWidget);
   });
 
-  testWidgets('game: dragging a tray piece onto the board places it', (
+  testWidgets('play opens the game; back returns home with no banner in game', (
     tester,
   ) async {
     final s = await buildFakeServices();
     await pumpApp(tester, s);
     await tester.tap(find.byKey(TestIds.homePlay));
-    await tester.pump();
-    final bot = PuzzleBot(tester);
-    await bot.waitForGame();
-    expect(bot.game.state.score, 0);
-    final made = await bot.playMoves(3);
-    expect(made, 3);
-    expect(bot.game.state.piecesPlaced, 3);
-    expect(bot.game.state.score, greaterThan(0));
-    expect(
-      tester.widget<Text>(find.byKey(TestIds.gameScore)).data,
-      '${bot.game.state.score}',
-    );
-  });
-
-  testWidgets('game: dropping outside the board does not place the piece', (
-    tester,
-  ) async {
-    final s = await buildFakeServices();
-    await pumpApp(tester, s);
-    await tester.tap(find.byKey(TestIds.homePlay));
-    await tester.pump();
-    final bot = PuzzleBot(tester);
-    await bot.waitForGame();
-    final origin = tester.getTopLeft(find.byKey(TestIds.gameWidget));
-    final (sx, sy) = bot.game.layout.trayCenter(0);
-    await tester.dragFrom(origin + Offset(sx, sy), const Offset(0, 20));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(bot.game.state.piecesPlaced, 0);
-  });
-
-  testWidgets('game over offers a rewarded-ad revive that continues the game', (
-    tester,
-  ) async {
-    final ads = FakeAdService();
-    final s = await buildFakeServices(ads: ads);
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    // Checkerboard: every empty cell is isolated, so after the dot nothing fits.
-    final rows = List.generate(8, (r) => r.isEven ? '.#.#.#.#' : '#.#.#.#.');
-    final game = BlockPuzzleGame(
-      initialState: GameState(
-        generator: PieceGenerator(Random(1)),
-        board: Board.fromRows(rows),
-        tray: [
-          PieceCatalog.dot,
-          PieceCatalog.byId('bar2_0'),
-          PieceCatalog.byId('square2_0'),
-        ],
-      ),
-    );
-    await tester.pumpWidget(
-      ServicesScope(
-        services: s,
-        child: MaterialApp(home: GameScreen(game: game)),
-      ),
-    );
-    final bot = PuzzleBot(tester);
-    await bot.waitForGame();
-    expect(await bot.drag(0, 0, 0), isTrue);
     await settle(tester);
-    expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
-    expect(find.byKey(TestIds.gameOverRevive), findsOneWidget);
-
-    await tester.tap(find.byKey(TestIds.gameOverRevive));
+    expect(find.byKey(TestIds.gameWidget), findsOneWidget);
+    expect(find.byKey(TestIds.homeBanner), findsNothing);
+    expect(find.byKey(const Key('game.banner')), findsNothing);
+    await tester.tap(find.byKey(TestIds.gameBack));
     await settle(tester);
-    expect(ads.rewardedShown, 1);
-    expect(game.state.isGameOver, isFalse);
-    expect(game.state.revivesUsed, 1);
-    expect(find.byKey(TestIds.gameOverDialog), findsNothing);
+    expect(find.byKey(TestIds.homePlay), findsOneWidget);
+    expect(find.byKey(TestIds.homeBanner), findsOneWidget);
   });
-
-  testWidgets(
-    'game over: declined revive ad keeps the dialog and plays again',
-    (tester) async {
-      final ads = FakeAdService(rewardResult: false);
-      final s = await buildFakeServices(ads: ads);
-      tester.view.physicalSize = const Size(400, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final rows = List.generate(8, (r) => r.isEven ? '.#.#.#.#' : '#.#.#.#.');
-      final game = BlockPuzzleGame(
-        initialState: GameState(
-          generator: PieceGenerator(Random(1)),
-          board: Board.fromRows(rows),
-          tray: [
-            PieceCatalog.dot,
-            PieceCatalog.byId('bar2_0'),
-            PieceCatalog.byId('square2_0'),
-          ],
-        ),
-      );
-      await tester.pumpWidget(
-        ServicesScope(
-          services: s,
-          child: MaterialApp(home: GameScreen(game: game)),
-        ),
-      );
-      final bot = PuzzleBot(tester);
-      await bot.waitForGame();
-      await bot.drag(0, 0, 0);
-      await settle(tester);
-      await tester.tap(find.byKey(TestIds.gameOverRevive));
-      await settle(tester);
-      // Ad failed: dialog is shown again.
-      expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
-      await tester.tap(find.byKey(TestIds.gameOverRetry));
-      await settle(tester);
-      expect(game.state.piecesPlaced, 0);
-      expect(game.state.isGameOver, isFalse);
-      expect(s.profile.data.stats.gamesPlayed, 1);
-      expect(ads.rewardedShown, 1);
-      expect(AdPlacement.values, contains(AdPlacement.revive));
-    },
-  );
 }

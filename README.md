@@ -1,13 +1,14 @@
-# Flutter game template
+# Wingy
 
-Flutter + Flame Android game template of the app-factory. Sample game: **Block Puzzle**
-(8x8 grid, three pieces, drag and drop). Game repos are generated from this folder.
+One-tap Android flyer built with Flutter + Flame (app-factory game `wingy`). Tap to flap a
+glowing moth through crystal spires, chain Perfect passes and blaze with Glow Dash.
+Spec: `docs/SPEC.md`.
 
 ```
 lib/core/        service interfaces + v1 implementations (ads, billing, saves, retention, ...)
 lib/core/retention/   daily reward, streaks (+freeze), daily challenges, achievements (pure Dart)
 lib/game/rules/  pure-Dart game rules (no Flutter/Flame/Android imports)
-lib/game/flame/  Flame renderer + drag and drop
+lib/game/flame/  Flame view (procedural art, no image assets)
 lib/ui/          menus, shop, settings, daily reward, challenges; test IDs in test_ids.dart
 app.config.yaml  package name, display name, theme, platforms, AdMob IDs (placeholders), pacing
 products.yaml    in-app products (remove ads, coin pack)
@@ -23,7 +24,7 @@ flutter analyze
 dart format --output=none --set-exit-if-changed .
 flutter test
 bash scripts/ad_safety_check.sh
-flutter test integration_test -d <emulator>   # bot plays the first moves
+flutter test integration_test -d <emulator> --dart-define=WINGY_SEED=1   # bot taps game.field
 flutter run                                   # debug: TEST ads only
 ```
 
