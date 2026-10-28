@@ -1,6 +1,6 @@
 # Wingy - game spec
 
-Status: DRAFT, awaiting owner approval on ya-spark/app-factory#11. When approved this is the contract for all later stages. Copy to `docs/SPEC.md` in `ya-spark/game-wingy` (repo-agent).
+Status: APPROVED by the owner (2026-10-28, ya-spark/app-factory#13). This is the contract for all later stages.
 
 - id: `wingy`, display name: **Wingy**, package: `com.activemindcraft.wingy`, repo: `ya-spark/game-wingy`
 - Base template: the block puzzle template (`template/flutter-game-template`). No flyer template exists. Wingy uses the template's service layer unchanged (`lib/core/`) and replaces the game itself: pure-Dart rules in `lib/game/rules/`, a new Flame view in `lib/game/flame/`, new game screen and widgets in `lib/ui/`.
