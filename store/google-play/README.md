@@ -1,4 +1,4 @@
-# Google Play store assets (drafts)
+# Google Play store assets (drafts, complete; owner reviews before publishing)
 
 - `listing.md` – title, short and full description (limits: 30 / 80 / 4000 chars).
 - `privacy_policy.md` – draft; must be hosted at a public URL and linked in Play Console.
