@@ -44,8 +44,8 @@ void main() {
           nextDay();
           await p.onAppOpened();
         }
-        // 30+40+50+70+150 coins (achievements add nothing without runs).
-        expect(p.data.coins, 340);
+        // 30+40+50+70+150 coins plus the 150 coin Daily Devotee achievement.
+        expect(p.data.coins, 340 + 150);
         expect(p.dashRefills, 2);
         // Day 7 reward and the 7-day streak each grant a freeze (capped at 2).
         expect(p.data.streak.freezes, greaterThanOrEqualTo(1));
