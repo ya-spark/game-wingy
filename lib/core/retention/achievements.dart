@@ -2,42 +2,52 @@
 class LifetimeStats {
   const LifetimeStats({
     this.gamesPlayed = 0,
-    this.totalLines = 0,
-    this.piecesPlaced = 0,
+    this.totalPairs = 0,
+    this.totalOrbs = 0,
+    this.totalShattered = 0,
+    this.totalDashUses = 0,
     this.bestScore = 0,
-    this.maxCombo = 0,
+    this.maxPerfectStreak = 0,
     this.bestStreak = 0,
   });
 
   final int gamesPlayed;
-  final int totalLines;
-  final int piecesPlaced;
+  final int totalPairs;
+  final int totalOrbs;
+  final int totalShattered;
+  final int totalDashUses;
   final int bestScore;
-  final int maxCombo;
+  final int maxPerfectStreak;
   final int bestStreak;
 
   LifetimeStats copyWith({
     int? gamesPlayed,
-    int? totalLines,
-    int? piecesPlaced,
+    int? totalPairs,
+    int? totalOrbs,
+    int? totalShattered,
+    int? totalDashUses,
     int? bestScore,
-    int? maxCombo,
+    int? maxPerfectStreak,
     int? bestStreak,
   }) => LifetimeStats(
     gamesPlayed: gamesPlayed ?? this.gamesPlayed,
-    totalLines: totalLines ?? this.totalLines,
-    piecesPlaced: piecesPlaced ?? this.piecesPlaced,
+    totalPairs: totalPairs ?? this.totalPairs,
+    totalOrbs: totalOrbs ?? this.totalOrbs,
+    totalShattered: totalShattered ?? this.totalShattered,
+    totalDashUses: totalDashUses ?? this.totalDashUses,
     bestScore: bestScore ?? this.bestScore,
-    maxCombo: maxCombo ?? this.maxCombo,
+    maxPerfectStreak: maxPerfectStreak ?? this.maxPerfectStreak,
     bestStreak: bestStreak ?? this.bestStreak,
   );
 
   Map<String, Object?> toJson() => {
     'gamesPlayed': gamesPlayed,
-    'totalLines': totalLines,
-    'piecesPlaced': piecesPlaced,
+    'totalPairs': totalPairs,
+    'totalOrbs': totalOrbs,
+    'totalShattered': totalShattered,
+    'totalDashUses': totalDashUses,
     'bestScore': bestScore,
-    'maxCombo': maxCombo,
+    'maxPerfectStreak': maxPerfectStreak,
     'bestStreak': bestStreak,
   };
 
@@ -45,20 +55,24 @@ class LifetimeStats {
       ? const LifetimeStats()
       : LifetimeStats(
           gamesPlayed: (j['gamesPlayed'] as num?)?.toInt() ?? 0,
-          totalLines: (j['totalLines'] as num?)?.toInt() ?? 0,
-          piecesPlaced: (j['piecesPlaced'] as num?)?.toInt() ?? 0,
+          totalPairs: (j['totalPairs'] as num?)?.toInt() ?? 0,
+          totalOrbs: (j['totalOrbs'] as num?)?.toInt() ?? 0,
+          totalShattered: (j['totalShattered'] as num?)?.toInt() ?? 0,
+          totalDashUses: (j['totalDashUses'] as num?)?.toInt() ?? 0,
           bestScore: (j['bestScore'] as num?)?.toInt() ?? 0,
-          maxCombo: (j['maxCombo'] as num?)?.toInt() ?? 0,
+          maxPerfectStreak: (j['maxPerfectStreak'] as num?)?.toInt() ?? 0,
           bestStreak: (j['bestStreak'] as num?)?.toInt() ?? 0,
         );
 }
 
 enum AchievementMetric {
   gamesPlayed,
-  totalLines,
-  piecesPlaced,
+  totalPairs,
+  totalOrbs,
+  totalShattered,
+  totalDashUses,
   bestScore,
-  maxCombo,
+  maxPerfectStreak,
   bestStreak,
 }
 
@@ -82,10 +96,12 @@ class AchievementDef {
 
   int valueIn(LifetimeStats s) => switch (metric) {
     AchievementMetric.gamesPlayed => s.gamesPlayed,
-    AchievementMetric.totalLines => s.totalLines,
-    AchievementMetric.piecesPlaced => s.piecesPlaced,
+    AchievementMetric.totalPairs => s.totalPairs,
+    AchievementMetric.totalOrbs => s.totalOrbs,
+    AchievementMetric.totalShattered => s.totalShattered,
+    AchievementMetric.totalDashUses => s.totalDashUses,
     AchievementMetric.bestScore => s.bestScore,
-    AchievementMetric.maxCombo => s.maxCombo,
+    AchievementMetric.maxPerfectStreak => s.maxPerfectStreak,
     AchievementMetric.bestStreak => s.bestStreak,
   };
 }
@@ -93,72 +109,80 @@ class AchievementDef {
 abstract final class AchievementEngine {
   static const List<AchievementDef> all = [
     AchievementDef(
-      'first_game',
-      'First Steps',
-      'Finish your first game',
-      AchievementMetric.gamesPlayed,
+      'ach_first_flight',
+      'First Flight',
+      'Score a point',
+      AchievementMetric.bestScore,
       1,
       25,
     ),
     AchievementDef(
-      'games_25',
-      'Regular',
-      'Play 25 games',
-      AchievementMetric.gamesPlayed,
+      'ach_ten_gaps',
+      'Ten Gaps',
+      'Score 10 in one run',
+      AchievementMetric.bestScore,
+      10,
       25,
+    ),
+    AchievementDef(
+      'ach_gold_wings',
+      'Gold Wings',
+      'Score 50 in one run',
+      AchievementMetric.bestScore,
+      50,
       100,
     ),
     AchievementDef(
-      'lines_50',
-      'Line Cleaner',
-      'Clear 50 lines',
-      AchievementMetric.totalLines,
-      50,
-      50,
-    ),
-    AchievementDef(
-      'lines_500',
-      'Line Master',
-      'Clear 500 lines',
-      AchievementMetric.totalLines,
-      500,
+      'ach_prism_wings',
+      'Prism Wings',
+      'Score 100 in one run',
+      AchievementMetric.bestScore,
+      100,
       250,
     ),
     AchievementDef(
-      'score_1000',
-      'Four Digits',
-      'Score 1,000 in one game',
-      AchievementMetric.bestScore,
-      1000,
-      50,
-    ),
-    AchievementDef(
-      'score_5000',
-      'High Roller',
-      'Score 5,000 in one game',
-      AchievementMetric.bestScore,
-      5000,
-      250,
-    ),
-    AchievementDef(
-      'combo_3',
-      'Combo Starter',
-      'Reach a x3 combo',
-      AchievementMetric.maxCombo,
-      3,
-      50,
-    ),
-    AchievementDef(
-      'pieces_500',
-      'Builder',
-      'Place 500 pieces',
-      AchievementMetric.piecesPlaced,
-      500,
+      'ach_perfectionist',
+      'Perfectionist',
+      '7 Perfect passes in a row',
+      AchievementMetric.maxPerfectStreak,
+      7,
       100,
     ),
     AchievementDef(
-      'streak_7',
-      'Week Warrior',
+      'ach_orb_collector',
+      'Orb Collector',
+      'Collect 50 glow orbs',
+      AchievementMetric.totalOrbs,
+      50,
+      75,
+    ),
+    AchievementDef(
+      'ach_dash_master',
+      'Dash Master',
+      'Shatter 20 spire pairs with Glow Dash',
+      AchievementMetric.totalShattered,
+      20,
+      100,
+    ),
+    AchievementDef(
+      'ach_night_owl',
+      'Night Owl',
+      'Reach the midnight palette (score 60)',
+      AchievementMetric.bestScore,
+      60,
+      100,
+    ),
+    AchievementDef(
+      'ach_regular',
+      'Regular',
+      'Play 50 runs',
+      AchievementMetric.gamesPlayed,
+      50,
+      100,
+    ),
+    AchievementDef(
+      'ach_daily_devotee',
+      'Daily Devotee',
       'Reach a 7-day streak',
       AchievementMetric.bestStreak,
       7,

@@ -167,7 +167,7 @@ void main() {
           ),
           Challenge(
             id: 'b',
-            kind: ChallengeKind.clearLines,
+            kind: ChallengeKind.passPairs,
             description: '',
             target: 10,
             reward: 1,
@@ -176,8 +176,8 @@ void main() {
       );
       s = DailyChallengeEngine.record(s, ChallengeKind.scorePoints, 200);
       s = DailyChallengeEngine.record(s, ChallengeKind.scorePoints, 150);
-      s = DailyChallengeEngine.record(s, ChallengeKind.clearLines, 3);
-      s = DailyChallengeEngine.record(s, ChallengeKind.clearLines, 4);
+      s = DailyChallengeEngine.record(s, ChallengeKind.passPairs, 3);
+      s = DailyChallengeEngine.record(s, ChallengeKind.passPairs, 4);
       expect(s.challenges[0].progress, 200);
       expect(s.challenges[1].progress, 7);
     });
@@ -196,9 +196,12 @@ void main() {
 
   group('AchievementEngine', () {
     test('unlocks when thresholds are reached, once', () {
-      const stats = LifetimeStats(gamesPlayed: 1, bestScore: 1200);
+      const stats = LifetimeStats(gamesPlayed: 1, bestScore: 12);
       final first = AchievementEngine.newlyUnlocked(stats, {});
-      expect(first.map((a) => a.id), containsAll(['first_game', 'score_1000']));
+      expect(
+        first.map((a) => a.id),
+        unorderedEquals(['ach_first_flight', 'ach_ten_gaps']),
+      );
       final again = AchievementEngine.newlyUnlocked(
         stats,
         first.map((a) => a.id).toSet(),
