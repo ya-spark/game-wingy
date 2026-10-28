@@ -1,6 +1,6 @@
 # Privacy Policy for Wingy - DRAFT (owner to fill the placeholders and review before publishing)
 
-_Last updated: PLACEHOLDER_DATE. Developer: Active Mind Craft (PLACEHOLDER legal name). Contact: PLACEHOLDER@example.com_
+_Last updated: 2026-10-28. Developer: Yaseen. Contact: ggadmuser@gmail.com_
 _Package: com.activemindcraft.wingy. This must be hosted at a public URL and linked in Play Console._
 
 Wingy is a one-tap flyer game. It has no account system and no server of its own.

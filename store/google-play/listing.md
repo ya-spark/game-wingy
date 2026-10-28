@@ -34,7 +34,7 @@ Tap, flap, glow.
 
 **Category:** Games > Arcade
 **Tags / keywords:** one tap game, moth, endless flyer, arcade, offline game
-**Contact email / website / privacy policy URL:** to be set by the owner in Play Console.
+**Developer:** Yaseen. **Contact email:** ggadmuser@gmail.com. **Privacy policy URL:** set in Play Console once the policy is hosted (required because the app shows ads).
 
 ## Play Console declarations
 - Contains ads: **Yes**
