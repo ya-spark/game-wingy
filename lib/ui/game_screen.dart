@@ -43,12 +43,7 @@ class _GameScreenState extends State<GameScreen> {
     _recorded = true;
     final g = _game!.state;
     final unlocked = await s.profile.recordGameFinished(
-      GameSummary(
-        score: g.score,
-        linesCleared: g.linesClearedTotal,
-        piecesPlaced: g.piecesPlaced,
-        maxCombo: g.maxComboReached,
-      ),
+      GameSummary(score: g.score, pairsPassed: g.piecesPlaced),
     );
     await s.leaderboard.submitScore(
       s.config.playGames.leaderboardHighScore,

@@ -12,6 +12,10 @@ class SaveData {
     this.soundOn = true,
     this.vibrationOn = true,
     this.remindersOn = false,
+    this.reduceMotion = false,
+    this.dashRefills = 0,
+    this.adRefillDay = -1,
+    this.adRefillsToday = 0,
     this.lastSeenMs = 0,
     this.savedAtMs = 0,
     this.dailyReward = const DailyRewardState(),
@@ -23,7 +27,7 @@ class SaveData {
   });
 
   /// Bump when the JSON shape changes and add a step to [SaveMigrator].
-  static const int currentVersion = 2;
+  static const int currentVersion = 3;
 
   final int coins;
   final int bestScore;
@@ -31,6 +35,14 @@ class SaveData {
   final bool soundOn;
   final bool vibrationOn;
   final bool remindersOn;
+  final bool reduceMotion;
+
+  /// Dash Refill stock: each one starts a run with a full Glow Dash meter.
+  final int dashRefills;
+
+  /// Day index and count of rewarded-ad refills taken (daily cap).
+  final int adRefillDay;
+  final int adRefillsToday;
 
   /// Latest time ever seen (UTC ms), for the backwards-clock guard.
   final int lastSeenMs;
@@ -53,6 +65,10 @@ class SaveData {
     bool? soundOn,
     bool? vibrationOn,
     bool? remindersOn,
+    bool? reduceMotion,
+    int? dashRefills,
+    int? adRefillDay,
+    int? adRefillsToday,
     int? lastSeenMs,
     int? savedAtMs,
     DailyRewardState? dailyReward,
@@ -68,6 +84,10 @@ class SaveData {
     soundOn: soundOn ?? this.soundOn,
     vibrationOn: vibrationOn ?? this.vibrationOn,
     remindersOn: remindersOn ?? this.remindersOn,
+    reduceMotion: reduceMotion ?? this.reduceMotion,
+    dashRefills: dashRefills ?? this.dashRefills,
+    adRefillDay: adRefillDay ?? this.adRefillDay,
+    adRefillsToday: adRefillsToday ?? this.adRefillsToday,
     lastSeenMs: lastSeenMs ?? this.lastSeenMs,
     savedAtMs: savedAtMs ?? this.savedAtMs,
     dailyReward: dailyReward ?? this.dailyReward,
@@ -86,6 +106,10 @@ class SaveData {
     'soundOn': soundOn,
     'vibrationOn': vibrationOn,
     'remindersOn': remindersOn,
+    'reduceMotion': reduceMotion,
+    'dashRefills': dashRefills,
+    'adRefillDay': adRefillDay,
+    'adRefillsToday': adRefillsToday,
     'lastSeenMs': lastSeenMs,
     'savedAtMs': savedAtMs,
     'dailyReward': dailyReward.toJson(),
@@ -104,6 +128,10 @@ class SaveData {
     soundOn: j['soundOn'] as bool? ?? true,
     vibrationOn: j['vibrationOn'] as bool? ?? true,
     remindersOn: j['remindersOn'] as bool? ?? false,
+    reduceMotion: j['reduceMotion'] as bool? ?? false,
+    dashRefills: (j['dashRefills'] as num?)?.toInt() ?? 0,
+    adRefillDay: (j['adRefillDay'] as num?)?.toInt() ?? -1,
+    adRefillsToday: (j['adRefillsToday'] as num?)?.toInt() ?? 0,
     lastSeenMs: (j['lastSeenMs'] as num?)?.toInt() ?? 0,
     savedAtMs: (j['savedAtMs'] as num?)?.toInt() ?? 0,
     dailyReward: DailyRewardState.fromJson(_map(j['dailyReward'])),
@@ -136,6 +164,7 @@ abstract final class SaveMigrator {
       j = switch (v) {
         0 => _v0ToV1(j),
         1 => _v1ToV2(j),
+        2 => _v2ToV3(j),
         _ => throw StateError('No migration from $v'),
       };
       v = (j['version'] as num).toInt();
@@ -157,5 +186,11 @@ abstract final class SaveMigrator {
     'version': 2,
     'processedPurchases': j['processedPurchases'] ?? const <String>[],
     'savedAtMs': j['savedAtMs'] ?? 0,
+  };
+
+  /// v3 added Dash Refill stock, ad-refill counters and `reduceMotion`; all default safely.
+  static Map<String, Object?> _v2ToV3(Map<String, Object?> j) => {
+    ...j,
+    'version': 3,
   };
 }

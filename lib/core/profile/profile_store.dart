@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
 import '../clock.dart';
@@ -11,18 +13,32 @@ import '../retention/streaks.dart';
 import '../save/save_data.dart';
 import '../save/save_service.dart';
 
-/// Result of one finished game, fed into stats / challenges / achievements.
+/// Result of one finished run, fed into stats / challenges / achievements.
 class GameSummary {
   const GameSummary({
     required this.score,
-    required this.linesCleared,
-    required this.piecesPlaced,
-    required this.maxCombo,
+    this.pairsPassed = 0,
+    this.perfectStreak = 0,
+    this.orbs = 0,
+    this.dashUses = 0,
+    this.dashShattered = 0,
+    this.bloomHits = 0,
+    this.coins = 0,
   });
   final int score;
-  final int linesCleared;
-  final int piecesPlaced;
-  final int maxCombo;
+  final int pairsPassed;
+
+  /// Longest run of consecutive Perfect passes.
+  final int perfectStreak;
+  final int orbs;
+  final int dashUses;
+  final int dashShattered;
+
+  /// Perfect passes that earned a Bloom bonus of +3 or more.
+  final int bloomHits;
+
+  /// Coins earned in the run (orbs plus score coins); credited by [ProfileStore].
+  final int coins;
 }
 
 /// Holds the player's [SaveData], applies the retention engines and persists every change.
@@ -98,9 +114,22 @@ class ProfileStore extends ChangeNotifier {
     if (!retention.dailyReward) return null;
     final c = DailyRewardEngine.claim(_data.dailyReward, today);
     if (c == null) return null;
-    await _commit(
-      _data.copyWith(dailyReward: c.state, coins: _data.coins + c.coins),
+    var d = _data.copyWith(
+      dailyReward: c.state,
+      coins: _data.coins + c.coins,
+      dashRefills: _data.dashRefills + c.dashRefills,
     );
+    if (c.streakFreezes > 0) {
+      d = d.copyWith(
+        streak: d.streak.copyWith(
+          freezes: min(
+            StreakEngine.maxFreezes,
+            d.streak.freezes + c.streakFreezes,
+          ),
+        ),
+      );
+    }
+    await _commit(d);
     return c.coins;
   }
 
@@ -124,18 +153,23 @@ class ProfileStore extends ChangeNotifier {
 
   // ---- gameplay -----------------------------------------------------------
 
-  /// Records a finished game. Returns achievements unlocked by it.
+  /// Records a finished run. Returns achievements unlocked by it.
   Future<List<AchievementDef>> recordGameFinished(GameSummary g) async {
     var d = _data;
     final stats = d.stats.copyWith(
       gamesPlayed: d.stats.gamesPlayed + 1,
-      totalLines: d.stats.totalLines + g.linesCleared,
-      piecesPlaced: d.stats.piecesPlaced + g.piecesPlaced,
+      totalPairs: d.stats.totalPairs + g.pairsPassed,
+      totalOrbs: d.stats.totalOrbs + g.orbs,
+      totalShattered: d.stats.totalShattered + g.dashShattered,
+      totalDashUses: d.stats.totalDashUses + g.dashUses,
       bestScore: g.score > d.stats.bestScore ? g.score : null,
-      maxCombo: g.maxCombo > d.stats.maxCombo ? g.maxCombo : null,
+      maxPerfectStreak: g.perfectStreak > d.stats.maxPerfectStreak
+          ? g.perfectStreak
+          : null,
     );
     d = d.copyWith(
       stats: stats,
+      coins: d.coins + g.coins,
       bestScore: g.score > d.bestScore ? g.score : null,
     );
     if (retention.dailyChallenges) {
@@ -144,15 +178,22 @@ class ProfileStore extends ChangeNotifier {
       c = DailyChallengeEngine.record(c, ChallengeKind.scorePoints, g.score);
       c = DailyChallengeEngine.record(
         c,
-        ChallengeKind.clearLines,
-        g.linesCleared,
+        ChallengeKind.passPairs,
+        g.pairsPassed,
       );
       c = DailyChallengeEngine.record(
         c,
-        ChallengeKind.placePieces,
-        g.piecesPlaced,
+        ChallengeKind.perfectStreak,
+        g.perfectStreak,
       );
-      c = DailyChallengeEngine.record(c, ChallengeKind.makeCombo, g.maxCombo);
+      c = DailyChallengeEngine.record(c, ChallengeKind.collectOrbs, g.orbs);
+      c = DailyChallengeEngine.record(c, ChallengeKind.useDash, g.dashUses);
+      c = DailyChallengeEngine.record(
+        c,
+        ChallengeKind.dashShatter,
+        g.dashShattered,
+      );
+      c = DailyChallengeEngine.record(c, ChallengeKind.bloomBonus, g.bloomHits);
       d = d.copyWith(challenges: c);
     }
     final r = _unlockAchievements(d);
@@ -191,6 +232,68 @@ class ProfileStore extends ChangeNotifier {
     await _commit(_data.copyWith(coins: _data.coins - n));
     return true;
   }
+
+  // ---- Dash Refill / streak freeze ---------------------------------------
+
+  static const int dashRefillCoinCost = 40;
+  static const int streakFreezeCoinCost = 100;
+  static const int maxAdRefillsPerDay = 3;
+
+  int get dashRefills => _data.dashRefills;
+
+  /// Rewarded-ad refills still available today.
+  int get adRefillsLeft => _data.adRefillDay == today
+      ? maxAdRefillsPerDay - _data.adRefillsToday
+      : maxAdRefillsPerDay;
+
+  /// Uses one Dash Refill from stock (the next run starts with a full meter).
+  Future<bool> consumeDashRefill() async {
+    if (_data.dashRefills <= 0) return false;
+    await _commit(_data.copyWith(dashRefills: _data.dashRefills - 1));
+    return true;
+  }
+
+  Future<bool> buyDashRefillWithCoins() async {
+    if (_data.coins < dashRefillCoinCost) return false;
+    await _commit(
+      _data.copyWith(
+        coins: _data.coins - dashRefillCoinCost,
+        dashRefills: _data.dashRefills + 1,
+      ),
+    );
+    return true;
+  }
+
+  /// Grants a Dash Refill earned by a rewarded ad. False when today's cap is used up.
+  Future<bool> grantAdDashRefill() async {
+    if (adRefillsLeft <= 0) return false;
+    final used = _data.adRefillDay == today ? _data.adRefillsToday : 0;
+    await _commit(
+      _data.copyWith(
+        dashRefills: _data.dashRefills + 1,
+        adRefillDay: today,
+        adRefillsToday: used + 1,
+      ),
+    );
+    return true;
+  }
+
+  Future<bool> buyStreakFreeze() async {
+    if (_data.coins < streakFreezeCoinCost ||
+        _data.streak.freezes >= StreakEngine.maxFreezes) {
+      return false;
+    }
+    await _commit(
+      _data.copyWith(
+        coins: _data.coins - streakFreezeCoinCost,
+        streak: _data.streak.copyWith(freezes: _data.streak.freezes + 1),
+      ),
+    );
+    return true;
+  }
+
+  Future<void> setReduceMotion(bool v) =>
+      _commit(_data.copyWith(reduceMotion: v));
 
   Future<void> setSound(bool v) => _commit(_data.copyWith(soundOn: v));
   Future<void> setVibration(bool v) => _commit(_data.copyWith(vibrationOn: v));
