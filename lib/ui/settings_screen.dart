@@ -24,10 +24,18 @@ class SettingsScreen extends StatelessWidget {
               onChanged: p.setSound,
             ),
             SwitchListTile(
-              key: TestIds.settingsVibration,
-              title: const Text('Vibration'),
+              key: TestIds.settingsHaptics,
+              title: const Text('Haptics'),
+              subtitle: const Text('A tick on Perfect passes, a thud on hits'),
               value: p.data.vibrationOn,
               onChanged: p.setVibration,
+            ),
+            SwitchListTile(
+              key: TestIds.settingsReduceMotion,
+              title: const Text('Reduce motion'),
+              subtitle: const Text('No screen shake or parallax'),
+              value: p.data.reduceMotion,
+              onChanged: p.setReduceMotion,
             ),
             SwitchListTile(
               key: TestIds.settingsReminders,

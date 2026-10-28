@@ -35,7 +35,7 @@ class DailyRewardScreen extends StatelessWidget {
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 4,
-                    childAspectRatio: 0.8,
+                    childAspectRatio: 0.7,
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
                     children: [
@@ -49,18 +49,20 @@ class DailyRewardScreen extends StatelessWidget {
                                           .colorScheme
                                           .tertiaryContainer
                                     : null),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Day ${i + 1}'),
-                              const Icon(
-                                Icons.monetization_on,
-                                color: Colors.amber,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Day ${i + 1}'),
+                                  ..._rewardLabel(DailyRewardEngine.rewards[i]),
+                                  if (i < claimedThrough)
+                                    const Icon(Icons.check, size: 16),
+                                ],
                               ),
-                              Text('${DailyRewardEngine.coinsByDay[i]}'),
-                              if (i < claimedThrough)
-                                const Icon(Icons.check, size: 16),
-                            ],
+                            ),
                           ),
                         ),
                     ],
@@ -70,10 +72,12 @@ class DailyRewardScreen extends StatelessWidget {
                   key: TestIds.dailyClaim,
                   onPressed: available
                       ? () async {
+                          final day = profile.dailyRewardDayToClaim;
                           final coins = await profile.claimDailyReward();
                           if (coins != null && context.mounted) {
+                            final item = profile.rewardForDay(day);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('+$coins coins')),
+                              SnackBar(content: Text(_describe(item))),
                             );
                           }
                         }
@@ -88,3 +92,24 @@ class DailyRewardScreen extends StatelessWidget {
     );
   }
 }
+
+List<Widget> _rewardLabel(DailyRewardItem r) => [
+  if (r.coins > 0) ...[
+    const Icon(Icons.monetization_on, color: Colors.amber),
+    Text('${r.coins}'),
+  ],
+  if (r.refills > 0) ...[
+    const Icon(Icons.bolt, color: Colors.cyanAccent),
+    Text('Refill x${r.refills}'),
+  ],
+  if (r.freezes > 0) ...[
+    const Icon(Icons.ac_unit, color: Colors.lightBlueAccent, size: 18),
+    Text('+${r.freezes} freeze'),
+  ],
+];
+
+String _describe(DailyRewardItem r) => [
+  if (r.coins > 0) '+${r.coins} coins',
+  if (r.refills > 0) '+${r.refills} Dash Refill',
+  if (r.freezes > 0) '+${r.freezes} streak freeze',
+].join(', ');

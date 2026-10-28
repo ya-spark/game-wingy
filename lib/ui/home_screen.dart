@@ -50,86 +50,97 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           listenable: profile,
           builder: (context, _) {
             final claimable = profile.challenges.any((c) => c.claimable);
-            return Center(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: 14,
-                  children: [
-                    Text(
-                      s.config.displayName,
-                      style: Theme.of(context).textTheme.displayMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        KeyedSubtree(
-                          key: TestIds.homeCoins,
-                          child: StatChip(
-                            icon: Icons.monetization_on,
-                            label: '${profile.data.coins}',
-                            color: Colors.amber,
+            return Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 14,
+                        children: [
+                          Text(
+                            s.config.displayName,
+                            style: Theme.of(context).textTheme.displayMedium,
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        KeyedSubtree(
-                          key: TestIds.homeBestScore,
-                          child: StatChip(
-                            icon: Icons.emoji_events,
-                            label: 'Best ${profile.data.bestScore}',
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              KeyedSubtree(
+                                key: TestIds.homeCoins,
+                                child: StatChip(
+                                  icon: Icons.monetization_on,
+                                  label: '${profile.data.coins}',
+                                  color: Colors.amber,
+                                ),
+                              ),
+                              KeyedSubtree(
+                                key: TestIds.homeBestScore,
+                                child: StatChip(
+                                  icon: Icons.emoji_events,
+                                  label: 'Best ${profile.data.bestScore}',
+                                ),
+                              ),
+                              if (s.config.retention.streaks)
+                                KeyedSubtree(
+                                  key: TestIds.homeStreak,
+                                  child: StatChip(
+                                    icon: Icons.local_fire_department,
+                                    label: '${profile.displayStreak}',
+                                    color: Colors.deepOrange,
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                        if (s.config.retention.streaks)
-                          KeyedSubtree(
-                            key: TestIds.homeStreak,
-                            child: StatChip(
-                              icon: Icons.local_fire_department,
-                              label: '${profile.displayStreak}',
-                              color: Colors.deepOrange,
+                          const SizedBox(height: 8),
+                          MenuButton(
+                            key: TestIds.homePlay,
+                            label: 'Play',
+                            icon: Icons.play_arrow,
+                            primary: true,
+                            onPressed: () => _open(const GameScreen()),
+                          ),
+                          if (s.config.retention.dailyReward)
+                            MenuButton(
+                              key: TestIds.homeDailyReward,
+                              label: 'Daily reward',
+                              icon: Icons.card_giftcard,
+                              badge: profile.dailyRewardAvailable,
+                              onPressed: () => _open(const DailyRewardScreen()),
                             ),
+                          if (s.config.retention.dailyChallenges ||
+                              s.config.retention.achievements)
+                            MenuButton(
+                              key: TestIds.homeChallenges,
+                              label: 'Challenges',
+                              icon: Icons.flag,
+                              badge: claimable,
+                              onPressed: () => _open(const ChallengesScreen()),
+                            ),
+                          MenuButton(
+                            key: TestIds.homeShop,
+                            label: 'Shop',
+                            icon: Icons.shopping_cart,
+                            onPressed: () => _open(const ShopScreen()),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    MenuButton(
-                      key: TestIds.homePlay,
-                      label: 'Play',
-                      icon: Icons.play_arrow,
-                      primary: true,
-                      onPressed: () => _open(const GameScreen()),
-                    ),
-                    if (s.config.retention.dailyReward)
-                      MenuButton(
-                        key: TestIds.homeDailyReward,
-                        label: 'Daily reward',
-                        icon: Icons.card_giftcard,
-                        badge: profile.dailyRewardAvailable,
-                        onPressed: () => _open(const DailyRewardScreen()),
+                          MenuButton(
+                            key: TestIds.homeSettings,
+                            label: 'Settings',
+                            icon: Icons.settings,
+                            onPressed: () => _open(const SettingsScreen()),
+                          ),
+                        ],
                       ),
-                    if (s.config.retention.dailyChallenges ||
-                        s.config.retention.achievements)
-                      MenuButton(
-                        key: TestIds.homeChallenges,
-                        label: 'Challenges',
-                        icon: Icons.flag,
-                        badge: claimable,
-                        onPressed: () => _open(const ChallengesScreen()),
-                      ),
-                    MenuButton(
-                      key: TestIds.homeShop,
-                      label: 'Shop',
-                      icon: Icons.shopping_cart,
-                      onPressed: () => _open(const ShopScreen()),
                     ),
-                    MenuButton(
-                      key: TestIds.homeSettings,
-                      label: 'Settings',
-                      icon: Icons.settings,
-                      onPressed: () => _open(const SettingsScreen()),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                // The banner lives on the home screen only, never in a run.
+                KeyedSubtree(
+                  key: TestIds.homeBanner,
+                  child: s.ads.buildBanner(),
+                ),
+              ],
             );
           },
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/config/products.dart';
+import '../core/retention/economy.dart';
 import '../core/services.dart';
 import 'test_ids.dart';
 
@@ -25,24 +26,58 @@ class ShopScreen extends StatelessWidget {
         listenable: s.profile,
         builder: (context, _) {
           final products = s.purchases.products;
-          if (!s.purchases.available || products.isEmpty) {
-            return const Center(
-              key: TestIds.shopUnavailable,
-              child: Text('Store unavailable right now.'),
-            );
-          }
+          final p = s.profile;
           return ListView(
             children: [
-              for (final p in products)
+              ListTile(
+                leading: const Icon(Icons.bolt, color: Colors.cyanAccent),
+                title: const Text('Dash Refill'),
+                subtitle: Text(
+                  'Start a run with a full Glow Dash meter (you have ${p.dashRefills})',
+                ),
+                trailing: FilledButton(
+                  key: TestIds.shopBuyRefill,
+                  onPressed: p.data.coins >= Economy.dashRefillCost
+                      ? p.buyDashRefill
+                      : null,
+                  child: Text('${Economy.dashRefillCost} coins'),
+                ),
+              ),
+              if (s.config.retention.streaks)
                 ListTile(
-                  title: Text(p.def.title),
-                  subtitle: Text(p.def.description),
-                  trailing: _owned(s, p.def)
+                  leading: const Icon(
+                    Icons.ac_unit,
+                    color: Colors.lightBlueAccent,
+                  ),
+                  title: const Text('Streak freeze'),
+                  subtitle: Text(
+                    'Covers one missed day (you have ${p.data.streak.freezes})',
+                  ),
+                  trailing: FilledButton(
+                    key: TestIds.shopBuyFreeze,
+                    onPressed: p.canBuyStreakFreeze ? p.buyStreakFreeze : null,
+                    child: Text('${Economy.streakFreezeCost} coins'),
+                  ),
+                ),
+              const Divider(),
+              if (!s.purchases.available || products.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(
+                    key: TestIds.shopUnavailable,
+                    child: Text('Store unavailable right now.'),
+                  ),
+                ),
+              for (final product in products)
+                ListTile(
+                  title: Text(product.def.title),
+                  subtitle: Text(product.def.description),
+                  trailing: _owned(s, product.def)
                       ? const Chip(label: Text('Owned'))
                       : FilledButton(
-                          key: TestIds.shopBuy(p.def.id),
-                          onPressed: () => s.purchases.buy(p.def.id),
-                          child: Text(p.price),
+                          key: TestIds.shopBuy(product.def.id),
+                          onPressed: () => s.purchases.buy(product.def.id),
+                          child: Text(product.price),
                         ),
                 ),
             ],
