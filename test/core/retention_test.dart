@@ -38,6 +38,25 @@ void main() {
       expect(c.day, 0);
     });
 
+    test('rewards follow the spec table over a full cycle', () {
+      var s = const DailyRewardState();
+      final got = <List<int>>[];
+      for (var d = 200; d < 207; d++) {
+        final c = DailyRewardEngine.claim(s, d)!;
+        got.add([c.coins, c.dashRefills, c.streakFreezes]);
+        s = c.state;
+      }
+      expect(got, [
+        [30, 0, 0],
+        [40, 0, 0],
+        [50, 0, 0],
+        [0, 1, 0],
+        [70, 0, 0],
+        [0, 1, 0],
+        [150, 0, 1],
+      ]);
+    });
+
     test('json round trip', () {
       const s = DailyRewardState(nextDay: 3, lastClaimDay: 42);
       final r = DailyRewardState.fromJson(s.toJson());
@@ -214,6 +233,42 @@ void main() {
         AchievementEngine.newlyUnlocked(const LifetimeStats(), {}),
         isEmpty,
       );
+    });
+
+    test('every achievement unlocks exactly at its target (acceptance 17)', () {
+      expect(AchievementEngine.all.length, 10);
+      for (final def in AchievementEngine.all) {
+        LifetimeStats statsAt(int v) => switch (def.metric) {
+          AchievementMetric.gamesPlayed => LifetimeStats(gamesPlayed: v),
+          AchievementMetric.totalPairs => LifetimeStats(totalPairs: v),
+          AchievementMetric.totalOrbs => LifetimeStats(totalOrbs: v),
+          AchievementMetric.totalShattered => LifetimeStats(totalShattered: v),
+          AchievementMetric.totalDashUses => LifetimeStats(totalDashUses: v),
+          AchievementMetric.bestScore => LifetimeStats(bestScore: v),
+          AchievementMetric.maxPerfectStreak => LifetimeStats(
+            maxPerfectStreak: v,
+          ),
+          AchievementMetric.bestStreak => LifetimeStats(bestStreak: v),
+        };
+        final below = AchievementEngine.newlyUnlocked(
+          statsAt(def.target - 1),
+          {},
+        ).map((a) => a.id);
+        final at = AchievementEngine.newlyUnlocked(
+          statsAt(def.target),
+          {},
+        ).map((a) => a.id);
+        expect(below, isNot(contains(def.id)), reason: def.id);
+        expect(at, contains(def.id), reason: def.id);
+      }
+      int target(String id) =>
+          AchievementEngine.all.firstWhere((a) => a.id == id).target;
+      expect(target('ach_perfectionist'), 7);
+      expect(target('ach_orb_collector'), 50);
+      expect(target('ach_dash_master'), 20);
+      expect(target('ach_night_owl'), 60);
+      expect(target('ach_regular'), 50);
+      expect(target('ach_daily_devotee'), 7);
     });
 
     test('achievement ids are unique', () {
