@@ -1,7 +1,6 @@
-# Privacy Policy for Wingy - DRAFT (owner to fill the placeholders and review before publishing)
+# Privacy Policy for Wingy
 
-_Last updated: 2026-10-28. Developer: Yaseen. Contact: ggadmuser@gmail.com_
-_Package: com.activemindcraft.wingy. This must be hosted at a public URL and linked in Play Console._
+_Last updated: 2026-10-28. Developer: Yaseen. Contact: ggadmuser@gmail.com. Package: com.activemindcraft.wingy_
 
 Wingy is a one-tap flyer game. It has no account system and no server of its own.
 
