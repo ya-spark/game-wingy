@@ -1,6 +1,6 @@
 # Wingy
 
-One-tap Android flyer built with Flutter + Flame (app-factory game `wingy`). Tap to flap a
+One-tap Android flyer built with Flutter + Flame (game-factory game `wingy`). Tap to flap a
 glowing moth through crystal spires, chain Perfect passes and blaze with Glow Dash.
 Spec: `docs/SPEC.md`.
 
