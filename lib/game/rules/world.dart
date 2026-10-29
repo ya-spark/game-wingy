@@ -57,6 +57,7 @@ abstract final class WingyWorld {
   static const double dashMaxY = 544;
 
   static const double deathAnimation = 0.6;
+  static const int maxRevives = 3;
   static const double reviveClearDistance = 300;
   static const double reviveInvulnerability = 2.0;
 }

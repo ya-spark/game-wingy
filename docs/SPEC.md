@@ -55,7 +55,7 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 
 **Run states.** `ready` (waiting for first tap; Wingy hovers), `playing`, `dead`. First tap flaps and starts the run. On death the run ends after a short 0.6 s fall/shake; then the game over dialog.
 
-**Revive.** Once per run, via rewarded ad (section 6): Wingy returns to the vertical center of the nearest upcoming gap, all spires within 300 u ahead are removed, 2.0 s of invulnerability with flicker; score, streak and meter are unchanged. A second death shows no revive.
+**Revive.** Up to three times per run, each via a rewarded ad (section 6): Wingy returns to the vertical center of the nearest upcoming gap, all spires within 300 u ahead are removed, 2.0 s of invulnerability with flicker; score, streak and meter are unchanged. After the third revive, the next death shows no revive.
 
 ## 4. Content
 - **Hero:** Wingy, a round-bodied moth with two large soft wings and a glowing abdomen; wings flap on tap (3 frames drawn procedurally).
@@ -81,7 +81,7 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 ## 6. Monetization
 - **Banner:** Home (menu) only. Never during a run or on the game over dialog.
 - **Interstitial:** after game over, when pressing Retry or Home on the game over dialog, honoring the caps (`interstitial_min_interval_seconds: 90`, `interstitial_every_n_game_overs: 2`, `max_interstitials_per_session: 6`, `no_interstitial_first_seconds: 60`). Never mid-run. Not shown if `remove_ads` is owned. Because runs are short, the every-2nd-game-over cap and the 90 s interval are what keep it unobtrusive.
-- **Rewarded** (always optional; stays available with `remove_ads`): (a) revive once per run, (b) free Dash Refill (start the next run with a full meter), max 3 ad refills per day.
+- **Rewarded** (always optional; stays available with `remove_ads`): (a) revive up to three times per run, (b) free Dash Refill (start the next run with a full meter), max 3 ad refills per day.
 - **Coins:** earned from orbs (cap 40 per run), 1 coin per 5 points at run end, daily reward and challenges. Spent on: Dash Refill 40 coins, streak freeze 100 coins.
 - **IAP** (`products.yaml`, ids unchanged): `remove_ads` (non-consumable, removes banner and interstitials), `coins_500` (consumable, 500 coins). Prices set in Play Console, not in code.
 - Test ad IDs only in debug and in the template; release IDs only from the `app.config.yaml` release block. Everything goes through `AdService` and `PurchaseService`; nothing new in vendor SDKs.
@@ -125,13 +125,13 @@ Rules (VM unit tests, `test/rules/`, fixed-step simulation with seeded Random):
 9. Orbs: touching an orb gives +1 score, +1 meter pip (max 3) and +1 coin; run coin cap is 40; no two orbs in adjacent pairs.
 10. Glow Dash: the meter at 3 enables Dash; using it sets the meter to 0, lasts 1.2 s, ignores spire collisions, still dies on the ground or ceiling, and each pair crossed during Dash adds exactly 3 without changing the Perfect streak; 0.4 s of grace after Dash; a second Dash cannot start during the first; pausing stops the timers.
 11. Drifting gaps appear only at score >= 20, about one in ten pairs, with +/-30 u and 2.0 s period.
-12. Revive is available exactly once per run; after it, spires within 300 u ahead are removed, invulnerability lasts 2.0 s, score and streak are unchanged; the second death shows no revive.
+12. Revive is available up to three times per run; after it, spires within 300 u ahead are removed, invulnerability lasts 2.0 s, score and streak are unchanged; the death after the third revive shows no revive.
 13. Same seed gives identical gap sequence and score for the same tap trace.
 
 App-level (widget/integration tests via test IDs):
 14. Home shows the banner (`home` only); `game.banner` does not exist on the game screen.
 15. Tapping `game.ready` / `game.field` starts the run and flaps (verified via Semantics values); the Dash button is off with fewer than 3 pips and ready at 3; tapping it sets `game.dash.state` to active.
-16. Game over dialog shows `game.over.revive` once; interstitial obeys the caps (AdFrequency tests with fake clock); Dash Refill with 0 stock opens the refill sheet, `game.refill.coins` deducts 40 coins, `game.refill.ad` grants a refill via a fake AdService, max 3 ad refills per day.
+16. Game over dialog shows `game.over.revive` while revives remain; interstitial obeys the caps (AdFrequency tests with fake clock); Dash Refill with 0 stock opens the refill sheet, `game.refill.coins` deducts 40 coins, `game.refill.ad` grants a refill via a fake AdService, max 3 ad refills per day.
 17. Daily reward cycles 7 days with the rewards in section 5; streak freeze covers one missed day; 3 daily challenges are generated per day and claimable; each achievement unlocks on its condition (unit tests with fake clock).
 18. Shop lists `remove_ads` and `coins_500`; `remove_ads` removes banner and interstitial but keeps rewarded; app background pauses the run.
 19. `flutter analyze`, `dart format`, `flutter test`, `scripts/ad_safety_check.sh` pass; `assets/LICENSES.md` lists every asset; no references to other flyer games' names in the repo outside `docs/SPEC.md`.

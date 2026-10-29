@@ -66,7 +66,7 @@ class WingyRun {
   int meter;
   int dashUses = 0;
   int dashShattered = 0;
-  bool revived = false;
+  int revivesUsed = 0;
 
   double dashTimer = 0;
   double graceTimer = 0;
@@ -87,7 +87,9 @@ class WingyRun {
   bool get deathAnimationDone =>
       isDead && deathTimer >= WingyWorld.deathAnimation;
 
-  bool get canRevive => isDead && !revived;
+  bool get revived => revivesUsed > 0;
+  int get revivesLeft => WingyWorld.maxRevives - revivesUsed;
+  bool get canRevive => isDead && revivesLeft > 0;
 
   /// Coins granted at run end for score (1 per 5 points); orb coins are already in [coins].
   int get scoreCoins => score ~/ 5;
@@ -140,11 +142,11 @@ class WingyRun {
     return true;
   }
 
-  /// Revives once per run: hero to the center of the next gap, spires within 300 u ahead
+  /// Revives up to [WingyWorld.maxRevives] times per run: hero to the center of the next gap, spires within 300 u ahead
   /// removed, 2 s of invulnerability. Score, streak and meter are unchanged.
   bool revive() {
     if (!canRevive) return false;
-    revived = true;
+    revivesUsed++;
     final next = pairs.where((p) => !p.passed).firstOrNull;
     if (next != null) {
       y = next.centerY;

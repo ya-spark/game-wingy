@@ -153,7 +153,7 @@ void main() {
     expect(find.byKey(TestIds.gamePauseResume), findsOneWidget);
   });
 
-  testWidgets('game over: score, best, medal; revive exactly once', (
+  testWidgets('game over: score, best, medal; revive up to three times', (
     tester,
   ) async {
     final ads = FakeAdService();
@@ -177,6 +177,15 @@ void main() {
     expect(g.run.phase, RunPhase.playing);
     expect(g.run.score, 12);
     expect(find.byKey(TestIds.gameOverDialog), findsNothing);
+
+    for (var i = 1; i < WingyWorld.maxRevives; i++) {
+      await killHero(tester, g);
+      expect(find.byKey(TestIds.gameOverRevive), findsOneWidget);
+      await tester.tap(find.byKey(TestIds.gameOverRevive));
+      await frames(tester, 12);
+      expect(g.run.phase, RunPhase.playing);
+    }
+    expect(ads.rewardedShown, WingyWorld.maxRevives);
 
     await killHero(tester, g);
     expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);

@@ -367,7 +367,7 @@ void main() {
       return run;
     }
 
-    test('once per run: clears spires ahead, 2 s invulnerability', () {
+    test('up to three per run: clears spires ahead, 2 s invulnerability', () {
       final run = died();
       final score = run.score;
       final streak = run.perfectStreak;
@@ -382,7 +382,16 @@ void main() {
       for (final p in run.pairs) {
         expect(p.passed || p.left > WingyWorld.heroX + 300, isTrue);
       }
-      // Second death: no revive.
+      for (var i = 1; i < WingyWorld.maxRevives; i++) {
+        run.invulnTimer = 0;
+        run.y = 570;
+        run.vy = 100;
+        tick(run, 0.2);
+        expect(run.isDead, isTrue);
+        expect(run.canRevive, isTrue);
+        expect(run.revive(), isTrue);
+      }
+      // Fourth death: no revive left.
       run.invulnTimer = 0;
       run.y = 570;
       run.vy = 100;
