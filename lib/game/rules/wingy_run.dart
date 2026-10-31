@@ -204,7 +204,7 @@ class WingyRun {
       if (dashTimer == 0) {
         graceTimer = WingyWorld.dashGrace;
         vy = 0;
-        _applyDashExitGap();
+        _applyDashExitGap(dt);
         _events.add(RunEvent(RunEventType.dashEnd, x: WingyWorld.heroX, y: y));
       }
     } else if (graceTimer > 0) {
@@ -351,11 +351,11 @@ class WingyRun {
 
   /// Pushes every pair that has not reached Wingy yet (and the spawn cursor) to the right so
   /// the next obstacle is at least [WingyWorld.dashExitBuffer] seconds of normal-speed travel away.
-  void _applyDashExitGap() {
+  void _applyDashExitGap(double dt) {
     final minLeft =
         WingyWorld.heroX +
         WingyWorld.heroRadius +
-        scrollSpeed * WingyWorld.dashExitBuffer;
+        scrollSpeed * (WingyWorld.dashExitBuffer + dt);
     final ahead = pairs.where((p) => !p.passed && p.left > WingyWorld.heroX);
     if (ahead.isEmpty) return;
     final first = ahead.reduce((a, b) => a.left < b.left ? a : b);
