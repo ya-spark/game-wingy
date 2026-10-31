@@ -175,15 +175,20 @@ class _MenuButtonState extends State<MenuButton> {
                   else
                     Icon(widget.icon, color: Colors.white, size: 30),
                   const SizedBox(width: 10),
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: widget.primary ? 30 : 22,
-                      fontWeight: FontWeight.w900,
-                      shadows: const [
-                        Shadow(color: Colors.black38, offset: Offset(0, 2)),
-                      ],
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: widget.primary ? 30 : 22,
+                          fontWeight: FontWeight.w900,
+                          shadows: const [
+                            Shadow(color: Colors.black38, offset: Offset(0, 2)),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
