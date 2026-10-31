@@ -201,9 +201,9 @@ class _MenuButtonState extends State<MenuButton> {
     return SizedBox(
       width: 290,
       height: height + 10,
-      child: Badge(
-        isLabelVisible: widget.badge,
-        smallSize: 16,
+      child: _BadgeDot(
+        show: widget.badge,
+        size: 16,
         backgroundColor: KidColors.coral,
         child: Padding(
           padding: const EdgeInsets.only(bottom: 10),
@@ -212,4 +212,43 @@ class _MenuButtonState extends State<MenuButton> {
       ),
     );
   }
+}
+
+/// Small notification dot on a button's corner. Unlike [Badge] it never takes part
+/// in hit testing, so the button underneath stays tappable.
+class _BadgeDot extends StatelessWidget {
+  const _BadgeDot({
+    required this.show,
+    required this.size,
+    required this.backgroundColor,
+    required this.child,
+  });
+  final bool show;
+  final double size;
+  final Color backgroundColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Positioned.fill(child: child),
+      if (show)
+        Positioned(
+          top: -2,
+          right: 6,
+          child: IgnorePointer(
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
 }
