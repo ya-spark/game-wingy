@@ -52,6 +52,9 @@ abstract final class WingyWorld {
   static const int meterMax = 3;
   static const double dashDuration = 1.2;
   static const double dashGrace = 0.4;
+
+  /// Seconds of normal-speed travel kept clear ahead of Wingy when lightning ends.
+  static const double dashExitBuffer = 1.75;
   static const double dashSpeedFactor = 1.8;
   static const double dashMinY = 40;
   static const double dashMaxY = 544;
