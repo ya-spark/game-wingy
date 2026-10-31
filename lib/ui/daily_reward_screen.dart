@@ -22,9 +22,10 @@ class DailyRewardScreen extends StatelessWidget {
           final claimedThrough = available
               ? today
               : (today == 0 ? DailyRewardEngine.cycleLength : today);
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
               children: [
                 if (s.config.retention.streaks)
                   Text(
@@ -34,6 +35,7 @@ class DailyRewardScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Expanded(
                   child: GridView.count(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     crossAxisCount: 4,
                     childAspectRatio: 0.62,
                     mainAxisSpacing: 8,
@@ -71,7 +73,11 @@ class DailyRewardScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                FilledButton(
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: FilledButton(
                   key: TestIds.dailyClaim,
                   onPressed: available
                       ? () async {
@@ -84,8 +90,10 @@ class DailyRewardScreen extends StatelessWidget {
                         }
                       : null,
                   child: Text(available ? 'Claim' : 'Come back tomorrow'),
+                  ),
                 ),
               ],
+            ),
             ),
           );
         },

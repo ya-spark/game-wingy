@@ -303,6 +303,33 @@ void main() {
       expect(run.isGrace, isFalse);
     });
 
+    test('lightning exit leaves a clear gap before the next obstacle', () {
+      for (var seed = 1; seed <= 20; seed++) {
+        final run = WingyRun(random: Random(seed))..start();
+        run.meter = 3;
+        run.dash();
+        var guard = 0;
+        while (run.isDashing && guard++ < 10000) {
+          run.advance(WingyWorld.step);
+        }
+        final minLeft =
+            WingyWorld.heroX +
+            WingyWorld.heroRadius +
+            run.scrollSpeed * WingyWorld.dashExitBuffer;
+        final ahead = run.pairs
+            .where((p) => !p.passed && p.left > WingyWorld.heroX)
+            .toList();
+        expect(ahead, isNotEmpty);
+        expect(ahead.first.left, greaterThanOrEqualTo(minLeft - 1e-6));
+        for (var i = 1; i < ahead.length; i++) {
+          expect(
+            ahead[i].x - ahead[i - 1].x,
+            closeTo(WingyWorld.pairSpacing, 1e-6),
+          );
+        }
+      }
+    });
+
     test('shatters pairs for exactly 3 each and keeps the streak', () {
       final run = WingyRun(random: Random(5))..start();
       run.perfectStreak = 2;

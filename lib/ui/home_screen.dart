@@ -45,7 +45,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final s = ServicesScope.of(context);
     final profile = s.profile;
     return Scaffold(
-      body: SafeArea(
+      body: KidBackground(
+        child: SafeArea(
         child: ListenableBuilder(
           listenable: profile,
           builder: (context, _) {
@@ -59,13 +60,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         mainAxisSize: MainAxisSize.min,
                         spacing: 14,
                         children: [
+                          const Bobbing(
+                            child: Text(
+                              '\u{1F54A}\u{FE0F}',
+                              style: TextStyle(fontSize: 72),
+                            ),
+                          ),
                           Text(
                             s.config.displayName,
-                            style: Theme.of(context).textTheme.displayMedium,
+                            style: Theme.of(context).textTheme.displayMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  shadows: const [
+                                    Shadow(
+                                      color: KidColors.ink,
+                                      offset: Offset(0, 4),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
                             textAlign: TextAlign.center,
                           ),
                           Wrap(
                             spacing: 8,
+                            runSpacing: 8,
                             children: [
                               KeyedSubtree(
                                 key: TestIds.homeCoins,
@@ -99,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             label: 'Play',
                             icon: Icons.play_arrow,
                             primary: true,
+                            emoji: '\u{1F680}',
                             onPressed: () => _open(const GameScreen()),
                           ),
                           if (s.config.retention.dailyReward)
@@ -106,6 +126,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               key: TestIds.homeDailyReward,
                               label: 'Daily reward',
                               icon: Icons.card_giftcard,
+                              emoji: '\u{1F381}',
+                              color: KidColors.coral,
                               badge: profile.dailyRewardAvailable,
                               onPressed: () => _open(const DailyRewardScreen()),
                             ),
@@ -115,6 +137,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               key: TestIds.homeChallenges,
                               label: 'Challenges',
                               icon: Icons.flag,
+                              emoji: '\u{1F3C6}',
+                              color: KidColors.grape,
                               badge: claimable,
                               onPressed: () => _open(const ChallengesScreen()),
                             ),
@@ -122,12 +146,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             key: TestIds.homeShop,
                             label: 'Shop',
                             icon: Icons.shopping_cart,
+                            emoji: '\u{1F6CD}\u{FE0F}',
+                            color: KidColors.sun,
                             onPressed: () => _open(const ShopScreen()),
                           ),
                           MenuButton(
                             key: TestIds.homeSettings,
                             label: 'Settings',
                             icon: Icons.settings,
+                            emoji: '\u2699\u{FE0F}',
+                            color: Colors.blueGrey,
                             onPressed: () => _open(const SettingsScreen()),
                           ),
                         ],
@@ -143,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             );
           },
         ),
+      ),
       ),
     );
   }
