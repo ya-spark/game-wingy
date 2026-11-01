@@ -66,4 +66,5 @@ flutter:
     - app.config.yaml
     - products.yaml
     - assets/LICENSES.md
+    - assets/voice/
     - assets/sfx/
