@@ -32,6 +32,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool _pauseOpen = false;
   bool _refillArmed = false;
   final AudioService _audio = AudioService();
+  bool _started = false;
 
   @override
   void initState() {
@@ -75,9 +76,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     game.onGameOver = () {
       _audio.enabled = s.profile.data.soundOn;
       _audio.sfx('game_over');
-      _audio.voice('game_over', variants: 2);
+      if (game.run.score > s.profile.data.bestScore) {
+        _audio.voice('you_did_it');
+      } else {
+        _audio.voice('game_over', variants: 2);
+      }
       _showGameOver(s);
     };
+    _audio.enabled = s.profile.data.soundOn;
+    _audio.voice('get_ready');
     return _game = game;
   }
 
@@ -97,6 +104,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     switch (e.type) {
       case RunEventType.flap:
         _audio.sfx('flap');
+        if (game.run.pairsPassed == 0 && !_started) {
+          _started = true;
+          _audio.voice('go');
+        }
       case RunEventType.pass:
         _audio.sfx('pass');
       case RunEventType.perfect:
@@ -306,6 +317,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         _refillArmed = false;
         _recorded = false;
         game.newRun(_newRun(s, meter: meter));
+        _started = false;
+        _audio.voice('get_ready');
       default:
         await _finishGame(s);
         await s.ads.maybeShowInterstitialAfterGameOver();
