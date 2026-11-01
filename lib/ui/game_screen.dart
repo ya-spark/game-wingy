@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/ads/ad_service.dart';
+import '../core/audio/audio_service.dart';
 import '../core/profile/profile_store.dart';
 import '../core/services.dart';
 import '../game/flame/wingy_game.dart';
@@ -30,6 +31,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool _dialogOpen = false;
   bool _pauseOpen = false;
   bool _refillArmed = false;
+  final AudioService _audio = AudioService();
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _audio.dispose();
     super.dispose();
   }
 
@@ -64,12 +67,61 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       if (mounted) setState(() {});
     };
     game.onEvent = (e) {
+      _playEventAudio(s, game, e);
       if (!s.profile.data.vibrationOn) return;
       if (e.type == RunEventType.perfect) HapticFeedback.lightImpact();
       if (e.type == RunEventType.hit) HapticFeedback.mediumImpact();
     };
-    game.onGameOver = () => _showGameOver(s);
+    game.onGameOver = () {
+      _audio.enabled = s.profile.data.soundOn;
+      _audio.sfx('game_over');
+      _audio.voice('game_over', variants: 2);
+      _showGameOver(s);
+    };
     return _game = game;
+  }
+
+  /// Perfect-pass streak lengths that earn a narrator line, highest first.
+  static const _praise = <(int, String)>[
+    (30, 'unbelievable'),
+    (20, 'incredible'),
+    (16, 'fantastic'),
+    (12, 'awesome'),
+    (8, 'excellent'),
+    (5, 'great'),
+    (3, 'nice'),
+  ];
+
+  void _playEventAudio(Services s, WingyGame game, RunEvent e) {
+    _audio.enabled = s.profile.data.soundOn;
+    switch (e.type) {
+      case RunEventType.flap:
+        _audio.sfx('flap');
+      case RunEventType.pass:
+        _audio.sfx('pass');
+      case RunEventType.perfect:
+        final streak = game.run.perfectStreak;
+        _audio.sfx('perfect_${streak.clamp(1, 7)}');
+        for (final (at, name) in _praise) {
+          if (streak == at) {
+            _audio.voice(name);
+            break;
+          }
+        }
+      case RunEventType.orb:
+        _audio.sfx('orb');
+      case RunEventType.dashStart:
+        _audio.sfx('dash');
+      case RunEventType.dashEnd:
+        break;
+      case RunEventType.shatter:
+        _audio.sfx('shatter');
+        _audio.voice('smashed_it');
+      case RunEventType.hit:
+        _audio.sfx('hit');
+      case RunEventType.revive:
+        _audio.voice('revived');
+    }
   }
 
   // ---- run bookkeeping ------------------------------------------------------
