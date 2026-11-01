@@ -108,7 +108,8 @@ void main() {
     await tester.tap(find.byKey(TestIds.settingsReduceMotion));
     await tester.pumpAndSettle();
     expect(s.profile.data.reduceMotion, isTrue);
-    expect(find.byKey(TestIds.settingsPlayGames), findsOneWidget);
+    // Play Games is off in app.config.yaml, so its row is hidden.
+    expect(find.byKey(TestIds.settingsPlayGames), findsNothing);
   });
 
   testWidgets('play opens the game; back returns home with no banner in game', (
