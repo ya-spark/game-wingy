@@ -85,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
+                              alignment: WrapAlignment.center,
                               children: [
                                 KeyedSubtree(
                                   key: TestIds.homeCoins,

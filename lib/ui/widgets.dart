@@ -200,15 +200,12 @@ class _MenuButtonState extends State<MenuButton> {
     );
     return SizedBox(
       width: 290,
-      height: height + 10,
+      height: height,
       child: _BadgeDot(
         show: widget.badge,
         size: 16,
         backgroundColor: KidColors.coral,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: SizedBox.expand(child: button),
-        ),
+        child: SizedBox.expand(child: button),
       ),
     );
   }

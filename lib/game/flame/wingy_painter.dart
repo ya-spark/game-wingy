@@ -46,8 +46,8 @@ class WingyPainter {
   double shake = 0;
 
   static const _palettes = <Palette, List<Color>>{
-    Palette.dusk: [Color(0xFF1B1446), Color(0xFF4B2A86), Color(0xFF8A4FB3)],
-    Palette.aurora: [Color(0xFF0B2B3B), Color(0xFF1C6A6E), Color(0xFF6C4FB8)],
+    Palette.dusk: [Color(0xFF1B1446), Color(0xFF2B4FB0), Color(0xFF2FA8C9)],
+    Palette.aurora: [Color(0xFF0B2B3B), Color(0xFF1C6A6E), Color(0xFF3FBF9A)],
     Palette.midnight: [Color(0xFF05071A), Color(0xFF111A4A), Color(0xFF2B1B63)],
   };
 
@@ -82,7 +82,7 @@ class WingyPainter {
               '+${e.points}',
               100,
               e.y - 30,
-              const Color(0xFFFF8AE2),
+              const Color(0xFFFFB347),
             ),
           );
           bursts.add(ShardBurst(e.x, e.y));
