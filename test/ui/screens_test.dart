@@ -65,10 +65,15 @@ void main() {
       for (var i = 0; i < 3; i++) {
         expect(find.byKey(TestIds.challengeTile(i)), findsOneWidget);
       }
-      expect(
-        find.byKey(TestIds.achievementTile('ach_first_flight')),
-        findsOneWidget,
+      // The list is lazy and the daily challenge text varies per day, so the
+      // achievements may start below the fold: scroll instead of assuming.
+      final tile = find.byKey(TestIds.achievementTile('ach_first_flight'));
+      await tester.scrollUntilVisible(
+        tile,
+        200,
+        scrollable: find.byType(Scrollable).first,
       );
+      expect(tile, findsOneWidget);
     },
   );
 
