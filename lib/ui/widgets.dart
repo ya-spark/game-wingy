@@ -275,7 +275,26 @@ class KidPanel extends StatelessWidget {
       ],
     ),
     clipBehavior: Clip.antiAlias,
-    child: Material(type: MaterialType.transparency, child: child),
+    child: Material(
+      type: MaterialType.transparency,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          listTileTheme: const ListTileThemeData(
+            titleTextStyle: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: KidColors.ink,
+            ),
+            subtitleTextStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: KidColors.ink,
+            ),
+          ),
+        ),
+        child: child,
+      ),
+    ),
   );
 }
 
@@ -285,6 +304,7 @@ class KidPage extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) =>
-      KidBackground(child: SafeArea(child: child));
+  Widget build(BuildContext context) => KidBackground(
+    child: SizedBox.expand(child: SafeArea(child: child)),
+  );
 }
