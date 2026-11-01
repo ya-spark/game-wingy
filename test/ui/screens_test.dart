@@ -84,11 +84,15 @@ void main() {
     await pumpApp(tester, s);
     await tester.tap(find.byKey(TestIds.homeShop));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(TestIds.shopBuy('remove_ads')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(TestIds.shopBuy('remove_ads')));
     await tester.pumpAndSettle();
     expect(s.profile.data.adsRemoved, isTrue);
     expect(s.ads.adsEnabled, isFalse);
     expect(find.byKey(TestIds.shopBuy('remove_ads')), findsNothing);
+    await tester.ensureVisible(find.byKey(TestIds.shopBuy('coins_500')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(TestIds.shopBuy('coins_500')));
     await tester.pumpAndSettle();
     expect(s.profile.data.coins, 500);
