@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/services.dart';
-import 'challenges_screen.dart';
-import 'daily_reward_screen.dart';
-import 'game_screen.dart';
-import 'settings_screen.dart';
-import 'shop_screen.dart';
+import 'routes.dart';
 import 'test_ids.dart';
 import 'widgets.dart';
 
@@ -36,9 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _open(Widget screen) =>
-      Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => screen));
+  void _open(String route) => Navigator.of(context).pushNamed(route);
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               icon: Icons.play_arrow,
                               primary: true,
                               emoji: '\u{1F680}',
-                              onPressed: () => _open(const GameScreen()),
+                              onPressed: () => _open(AppRoutes.play),
                             ),
                             if (s.config.retention.dailyReward)
                               MenuButton(
@@ -130,8 +124,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 emoji: '\u{1F381}',
                                 color: KidColors.coral,
                                 badge: profile.dailyRewardAvailable,
-                                onPressed: () =>
-                                    _open(const DailyRewardScreen()),
+                                onPressed: () => _open(AppRoutes.dailyReward),
                               ),
                             if (s.config.retention.dailyChallenges ||
                                 s.config.retention.achievements)
@@ -142,8 +135,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 emoji: '\u{1F3C6}',
                                 color: KidColors.grape,
                                 badge: claimable,
-                                onPressed: () =>
-                                    _open(const ChallengesScreen()),
+                                onPressed: () => _open(AppRoutes.challenges),
                               ),
                             MenuButton(
                               key: TestIds.homeShop,
@@ -151,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               icon: Icons.shopping_cart,
                               emoji: '\u{1F6CD}\u{FE0F}',
                               color: KidColors.sun,
-                              onPressed: () => _open(const ShopScreen()),
+                              onPressed: () => _open(AppRoutes.shop),
                             ),
                             MenuButton(
                               key: TestIds.homeSettings,
@@ -159,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               icon: Icons.settings,
                               emoji: '\u2699\u{FE0F}',
                               color: Colors.blueGrey,
-                              onPressed: () => _open(const SettingsScreen()),
+                              onPressed: () => _open(AppRoutes.settings),
                             ),
                           ],
                         ),
