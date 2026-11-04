@@ -349,20 +349,69 @@ void main() {
       expect(run.scrollSpeed, 142);
     });
 
-    test('altitude is held and clamped into [40, 544]; vy stays 0', () {
-      final run = WingyRun(random: Random(5))..start();
-      run.y = 570;
-      run.meter = 3;
-      run.dash();
-      expect(run.y, 544);
-      tick(run, 0.5);
-      expect(run.y, 544);
-      expect(run.vy, 0);
-      run.flap();
-      expect(run.vy, 0);
+    test(
+      'start altitude is clamped into [40, 544]; vy stays 0; flap ignored',
+      () {
+        final run = WingyRun(random: Random(5))..start();
+        run.y = 570;
+        run.meter = 3;
+        run.dash();
+        expect(run.y, 544);
+        tick(run, 0.2);
+        expect(run.y, lessThan(544));
+        expect(run.vy, 0);
+        run.flap();
+        expect(run.vy, 0);
+      },
+    );
+
+    test('a dash started outside 200..400 ends inside that band', () {
+      for (final startY in [570.0, 544.0, 450.0, 40.0, 100.0, 300.0]) {
+        final run = WingyRun(random: Random(5))..start();
+        run.y = startY;
+        run.meter = 3;
+        run.dash();
+        var guard = 0;
+        while (run.isDashing && guard++ < 10000) {
+          run.advance(WingyWorld.step);
+        }
+        expect(run.isDead, isFalse);
+        expect(run.y, inInclusiveRange(200, 400), reason: 'start $startY');
+      }
     });
 
-    test('pausing stops the dash timer', () {
+    test('ease never moves faster than 250 u/s', () {
+      final run = WingyRun(random: Random(5))..start();
+      run.y = 544;
+      run.meter = 3;
+      run.dash();
+      var prev = run.y;
+      for (var i = 0; i < 100; i++) {
+        run.advance(WingyWorld.step);
+        expect(
+          (run.y - prev).abs(),
+          lessThanOrEqualTo(WingyWorld.dashEaseRate * WingyWorld.step + 1e-9),
+        );
+        prev = run.y;
+      }
+    });
+
+    test('dashEnding is true only in the last 0.3 s of the dash', () {
+      final run = WingyRun(random: Random(5))..start();
+      expect(run.dashEnding, isFalse);
+      run.meter = 3;
+      run.dash();
+      expect(run.dashEnding, isFalse);
+      tick(run, 0.85);
+      expect(run.dashEnding, isFalse);
+      tick(run, 0.1);
+      expect(run.dashEnding, isTrue);
+      tick(run, 0.3);
+      expect(run.isDashing, isFalse);
+      expect(run.dashEnding, isFalse);
+    });
+
+    test('pausing stops the dash timer and the float timer', () {
       final run = WingyRun(random: Random(5))..start();
       run.meter = 3;
       run.dash();
@@ -371,6 +420,57 @@ void main() {
       run.paused = true;
       tick(run, 5);
       expect(run.dashTimer, t);
+      run.paused = false;
+      tick(run, 1.1);
+      expect(run.isFloating, isTrue);
+      final f = run.floatTimer;
+      run.paused = true;
+      tick(run, 5);
+      expect(run.floatTimer, f);
+    });
+
+    group('recovery float', () {
+      WingyRun endedLow() {
+        final run = WingyRun(random: Random(5))..start();
+        run.y = 544;
+        run.meter = 3;
+        run.dash();
+        var guard = 0;
+        while (run.isDashing && guard++ < 10000) {
+          run.advance(WingyWorld.step);
+        }
+        return run;
+      }
+
+      test('no tap for 0.5 s after a low dash: still alive', () {
+        final run = endedLow();
+        expect(run.isFloating, isTrue);
+        tick(run, WingyWorld.recoveryFloatDuration - 0.05);
+        expect(run.vy, lessThanOrEqualTo(WingyWorld.recoveryMaxFall));
+        tick(run, 0.05);
+        expect(run.isDead, isFalse);
+      });
+
+      test('a tap during the float flaps normally and ends it', () {
+        final run = endedLow();
+        tick(run, 0.2);
+        run.flap();
+        expect(run.vy, WingyWorld.flapVelocity);
+        expect(run.isFloating, isFalse);
+      });
+
+      test('without a tap the ground still kills after the float', () {
+        final run = WingyRun(random: Random(5))..start();
+        run.meter = 3;
+        run.dash();
+        var guard = 0;
+        while (run.isDashing && guard++ < 10000) {
+          run.advance(WingyWorld.step);
+        }
+        run.y = 560;
+        tick(run, 3);
+        expect(run.isDead, isTrue);
+      });
     });
 
     test('grace after dash: spire contact does not kill', () {

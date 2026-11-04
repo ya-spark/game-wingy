@@ -49,9 +49,9 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 **Glow Dash (the original mechanic).**
 - Meter: 0 to 3 pips from orbs. Meter resets to 0 at run start (a coin refill can start a run with a full meter, section 6).
 - With 3 pips, the Dash button (`game.dash`) lights up. Tapping it starts a Dash: duration 1.2 s, meter set to 0.
-- During Dash: Wingy is immune to spires (not the ground or ceiling), vertical velocity is damped to 0 and held at the current altitude (clamped into [40, 544]), scroll speed is multiplied by 1.8, and each spire pair crossed is shattered (+3, section above). Roughly two pairs are crossed per dash at base speed.
-- After Dash ends, a 0.4 s grace of spire immunity keeps the player from dying instantly on exit. Gravity resumes with vertical velocity 0.
-- Only one Dash at a time; the button is disabled during Dash and while the meter is below 3. Pause stops the timers.
+- During Dash: Wingy is immune to spires (not the ground or ceiling), vertical velocity is 0 and Wingy eases toward the band y 200..400 when the dash starts outside it (at most 250 u/s, smooth; the clamp into [40, 544] stays as a safety bound), so a dash never ends near the ground; Wingy pulses (scale and glow) for the last 0.3 s of the dash as the "tap now" cue (`dashEnding`, drawn in the painter, no assets or particles); scroll speed is multiplied by 1.8, and each spire pair crossed is shattered (+3, section above). Roughly two pairs are crossed per dash at base speed.
+- After Dash ends, a 0.4 s grace of spire immunity keeps the player from dying instantly on exit. Then a 0.5 s recovery float starts with vertical velocity 0: gravity x0.25 and fall speed capped at 150 u/s (about 45 u of drift). Any tap ends the float at once with a normal flap (-430). Ground and ceiling stay deadly; without a tap, normal gravity resumes after the float. Constants are in `world.dart`.
+- Only one Dash at a time; the button is disabled during Dash and while the meter is below 3. Pause stops the timers, including the float.
 
 **Run states.** `ready` (waiting for first tap; Wingy hovers), `playing`, `dead`. First tap flaps and starts the run. On death the run ends after a short 0.6 s fall/shake; then the game over dialog.
 
@@ -123,7 +123,7 @@ Rules (VM unit tests, `test/rules/`, fixed-step simulation with seeded Random):
 7. Reachability: a reference autopilot (tap when vy-projected position falls below the next gap center) survives 500 pairs for each of 20 seeds.
 8. Scroll speed is 140 u/s at start, 142 after one pass, and 220 at cap.
 9. Orbs: touching an orb gives +1 score, +1 meter pip (max 3) and +1 coin; run coin cap is 40; no two orbs in adjacent pairs.
-10. Glow Dash: the meter at 3 enables Dash; using it sets the meter to 0, lasts 1.2 s, ignores spire collisions, still dies on the ground or ceiling, and each pair crossed during Dash adds exactly 3 without changing the Perfect streak; 0.4 s of grace after Dash; a second Dash cannot start during the first; pausing stops the timers.
+10. Glow Dash: the meter at 3 enables Dash; using it sets the meter to 0, lasts 1.2 s, ignores spire collisions, still dies on the ground or ceiling, and each pair crossed during Dash adds exactly 3 without changing the Perfect streak; 0.4 s of grace after Dash; a Dash started at y 544 ends with Wingy still alive after 0.5 s without a tap, a tap during the 0.5 s recovery float flaps normally (-430) and ends the float, and the ground still kills once the float is over; a Dash started outside y 200..400 ends inside that band; `dashEnding` is true only in the last 0.3 s of the Dash; a second Dash cannot start during the first; pausing stops the timers.
 11. Drifting gaps appear only at score >= 20, about one in ten pairs, with +/-30 u and 2.0 s period.
 12. Revive is available up to three times per run; after it, spires within 300 u ahead are removed, invulnerability lasts 2.0 s, score and streak are unchanged; the death after the third revive shows no revive.
 13. Same seed gives identical gap sequence and score for the same tap trace.

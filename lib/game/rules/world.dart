@@ -59,6 +59,20 @@ abstract final class WingyWorld {
   static const double dashMinY = 40;
   static const double dashMaxY = 544;
 
+  /// Recovery float after a dash: seconds, gravity factor and fall-speed cap (u/s).
+  static const double recoveryFloatDuration = 0.5;
+  static const double recoveryGravityFactor = 0.25;
+  static const double recoveryMaxFall = 150;
+
+  /// During a dash Wingy eases into this altitude band at no more than [dashEaseRate] u/s.
+  static const double dashEaseMinY = 200;
+  static const double dashEaseMaxY = 400;
+  static const double dashEaseRate = 250;
+  static const double dashEaseInset = 10;
+
+  /// Wingy pulses for the last seconds of the dash (the "tap now" cue).
+  static const double dashEndingCue = 0.3;
+
   static const double deathAnimation = 0.6;
   static const int maxRevives = 3;
   static const double reviveClearDistance = 300;

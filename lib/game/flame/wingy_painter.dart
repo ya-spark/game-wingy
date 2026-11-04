@@ -340,6 +340,20 @@ class WingyPainter {
     canvas.save();
     canvas.translate(x, y);
     canvas.rotate(run.isDashing ? 0 : tilt);
+    if (run.dashEnding) {
+      // End-of-dash cue: pulsing scale and a brighter glow for the last 0.3 s.
+      final pulse = 0.5 + 0.5 * sin(time * 40);
+      canvas.scale(1 + 0.18 * pulse);
+      canvas.drawCircle(
+        Offset.zero,
+        44,
+        Paint()
+          ..shader = Gradient.radial(Offset.zero, 44, [
+            Color.fromARGB((90 + 120 * pulse).round(), 255, 255, 255),
+            const Color(0x00FFFFFF),
+          ]),
+      );
+    }
     if (run.isDashing || run.isGrace) {
       canvas.drawCircle(
         Offset.zero,

@@ -70,11 +70,19 @@ class WingyRun {
 
   double dashTimer = 0;
   double graceTimer = 0;
+  double floatTimer = 0;
+  bool _easing = false;
   double invulnTimer = 0;
   double deathTimer = 0;
 
   bool get isDashing => dashTimer > 0;
   bool get isGrace => graceTimer > 0;
+
+  /// Recovery float after a dash: low gravity until the timer ends or a tap.
+  bool get isFloating => floatTimer > 0;
+
+  /// True during the last [WingyWorld.dashEndingCue] seconds of the dash.
+  bool get dashEnding => isDashing && dashTimer <= WingyWorld.dashEndingCue;
   bool get isInvulnerable => invulnTimer > 0;
   bool get isDead => phase == RunPhase.dead;
   bool get canDash =>
@@ -125,6 +133,7 @@ class WingyRun {
     if (paused || isDead) return;
     if (phase == RunPhase.ready) phase = RunPhase.playing;
     if (isDashing) return;
+    floatTimer = 0;
     vy = WingyWorld.flapVelocity;
     _events.add(RunEvent(RunEventType.flap, x: WingyWorld.heroX, y: y));
   }
@@ -135,8 +144,10 @@ class WingyRun {
     meter = 0;
     dashTimer = WingyWorld.dashDuration;
     graceTimer = 0;
+    floatTimer = 0;
     vy = 0;
     y = y.clamp(WingyWorld.dashMinY, WingyWorld.dashMaxY);
+    _easing = y < WingyWorld.dashEaseMinY || y > WingyWorld.dashEaseMaxY;
     dashUses++;
     _events.add(RunEvent(RunEventType.dashStart, x: WingyWorld.heroX, y: y));
     return true;
@@ -163,6 +174,7 @@ class WingyRun {
     invulnTimer = WingyWorld.reviveInvulnerability;
     dashTimer = 0;
     graceTimer = 0;
+    floatTimer = 0;
     deathTimer = 0;
     phase = RunPhase.playing;
     _events.add(RunEvent(RunEventType.revive, x: WingyWorld.heroX, y: y));
@@ -203,6 +215,7 @@ class WingyRun {
       dashTimer = max(0, dashTimer - dt);
       if (dashTimer == 0) {
         graceTimer = WingyWorld.dashGrace;
+        floatTimer = WingyWorld.recoveryFloatDuration;
         vy = 0;
         _applyDashExitGap(dt);
         _events.add(RunEvent(RunEventType.dashEnd, x: WingyWorld.heroX, y: y));
@@ -213,8 +226,17 @@ class WingyRun {
 
     if (isDashing) {
       vy = 0;
+      _easeToBand(dt);
     } else {
-      vy = min(vy + WingyWorld.gravity * dt, WingyWorld.terminalVelocity);
+      if (isFloating) {
+        floatTimer = max(0, floatTimer - dt);
+        vy = min(
+          vy + WingyWorld.gravity * WingyWorld.recoveryGravityFactor * dt,
+          WingyWorld.recoveryMaxFall,
+        );
+      } else {
+        vy = min(vy + WingyWorld.gravity * dt, WingyWorld.terminalVelocity);
+      }
       y += vy * dt;
     }
 
@@ -278,6 +300,22 @@ class WingyRun {
       pairsPassed++;
       _onPass(p);
     }
+  }
+
+  /// Eases Wingy toward the mid-screen band, slowing near its edge, at most
+  /// [WingyWorld.dashEaseRate] u/s. The dashMinY..dashMaxY clamp stays as a safety bound.
+  void _easeToBand(double dt) {
+    if (!_easing) return;
+    // Aim slightly inside the band so the dash ends clearly within it.
+    final target = y < WingyWorld.dashEaseMinY
+        ? WingyWorld.dashEaseMinY + WingyWorld.dashEaseInset
+        : WingyWorld.dashEaseMaxY - WingyWorld.dashEaseInset;
+    final dist = target - y;
+    final speed = min(WingyWorld.dashEaseRate, max(dist.abs() * 4, 20.0));
+    final move = min(speed * dt, dist.abs());
+    y += dist.sign * move;
+    if (y == target) _easing = false;
+    y = y.clamp(WingyWorld.dashMinY, WingyWorld.dashMaxY);
   }
 
   bool _overlapsColumn(SpirePair p) {
@@ -345,6 +383,7 @@ class WingyRun {
     deathTimer = 0;
     dashTimer = 0;
     graceTimer = 0;
+    floatTimer = 0;
     vy = 0;
     _events.add(RunEvent(RunEventType.hit, x: WingyWorld.heroX, y: y));
   }
