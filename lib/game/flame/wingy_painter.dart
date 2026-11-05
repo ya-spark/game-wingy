@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
+import '../../core/skins/flyer_skins.dart';
 import '../rules/spire.dart';
 import '../rules/wingy_run.dart';
 import '../rules/world.dart';
@@ -40,6 +41,9 @@ class WingyPainter {
   final List<ShardBurst> bursts = [];
 
   bool reduceMotion = false;
+
+  /// Cosmetic flyer look; the hitbox and physics never read it.
+  FlyerSkin skin = FlyerSkins.moth;
   double time = 0;
   double scrollX = 0;
   double sinceFlap = 1;
@@ -405,6 +409,7 @@ class WingyPainter {
     bool grace = false,
     bool ending = false,
   }) {
+    final sk = skin;
     canvas.save();
     canvas.translate(x, y);
     canvas.rotate(tilt);
@@ -428,52 +433,84 @@ class WingyPainter {
         34,
         Paint()
           ..shader = Gradient.radial(Offset.zero, 34, [
-            const Color(0x99FFE066),
-            const Color(0x00FFE066),
+            Color(0x99000000 | (sk.trail & 0xFFFFFF)),
+            Color(sk.trail & 0xFFFFFF),
           ]),
       );
     }
     final lift = const [-18.0, -6.0, 12.0][frame];
-    final wing = Paint()..color = const Color(0xCCEBD9FF);
+    final wing = Paint()..color = Color(sk.wing);
     final wingEdge = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
-      ..color = const Color(0xFFB896FF);
+      ..color = Color(sk.wingEdge);
+    final k = sk.wingLength / 22; // 1.0 for the moth
     for (final side in const [-1.0, 1.0]) {
       final path = Path()
         ..moveTo(-2, 0)
         ..quadraticBezierTo(
-          -16 + side * 2,
+          (-16 + side * 2) * k,
           lift - 4,
-          -22,
+          -22 * k,
           lift * 0.8 + 2 * side,
         )
-        ..quadraticBezierTo(-14, 8 + lift * 0.2, -2, 3)
+        ..quadraticBezierTo(-14 * k, 8 + lift * 0.2, -2, 3)
         ..close();
       // Two wings (near and far) drawn with a slight offset.
       canvas.save();
       canvas.translate(side > 0 ? 0 : 2, side > 0 ? 0 : -2);
       canvas.drawPath(path, wing);
       canvas.drawPath(path, wingEdge);
+      if (sk.hindWing) {
+        final hind = Path()
+          ..moveTo(-2, 2)
+          ..quadraticBezierTo(-12 * k, 6 + lift * 0.4, -15 * k, 12 + lift * 0.3)
+          ..quadraticBezierTo(-6 * k, 12, -2, 5)
+          ..close();
+        canvas.drawPath(hind, wing);
+        canvas.drawPath(hind, wingEdge);
+      }
       canvas.restore();
     }
     // Body and glowing abdomen.
     canvas.drawOval(
       const Rect.fromLTWH(-9, -8, 20, 16),
-      Paint()..color = const Color(0xFF6B4E9B),
+      Paint()..color = Color(sk.body),
     );
+    if (sk.antennae) {
+      final ant = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = Color(sk.body);
+      canvas.drawLine(const Offset(8, -6), const Offset(14, -13), ant);
+      canvas.drawLine(const Offset(9, -4), const Offset(16, -9), ant);
+    }
     canvas.drawCircle(
       const Offset(-8, 2),
       7,
       Paint()
-        ..color = const Color(0x88FFD36B)
+        ..color = Color(sk.glow)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
-    canvas.drawCircle(
-      const Offset(-8, 2),
-      4.5,
-      Paint()..color = const Color(0xFFFFE9A8),
-    );
+    if (sk.sparkle) {
+      // Four-point star in place of the round glow core.
+      final star = Path();
+      const c = Offset(-8, 2);
+      for (var i = 0; i < 8; i++) {
+        final r = i.isEven ? 8.0 : 3.0;
+        final a = i * pi / 4 + time * 2;
+        final p = c + Offset(cos(a) * r, sin(a) * r);
+        i == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
+      }
+      star.close();
+      canvas.drawPath(star, Paint()..color = Color(sk.glowCore));
+    } else {
+      canvas.drawCircle(
+        const Offset(-8, 2),
+        4.5,
+        Paint()..color = Color(sk.glowCore),
+      );
+    }
     canvas.drawCircle(const Offset(6, -2), 2.2, Paint()..color = _white);
     canvas.drawCircle(
       const Offset(6.6, -2),

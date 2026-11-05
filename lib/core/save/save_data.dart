@@ -32,10 +32,12 @@ class SaveData {
     this.stats = const LifetimeStats(),
     this.unlockedAchievements = const {},
     this.processedPurchases = const {},
+    this.ownedSkins = const {'moth'},
+    this.equippedSkin = 'moth',
   });
 
   /// Bump when the JSON shape changes and add a step to [SaveMigrator].
-  static const int currentVersion = 3;
+  static const int currentVersion = 4;
 
   final int coins;
   final int bestScore;
@@ -84,6 +86,10 @@ class SaveData {
   /// Purchase IDs already delivered, so a replayed purchase is not granted twice.
   final Set<String> processedPurchases;
 
+  /// Flyer skins owned (the free Moth always) and the one in use.
+  final Set<String> ownedSkins;
+  final String equippedSkin;
+
   SaveData copyWith({
     int? coins,
     int? bestScore,
@@ -111,6 +117,8 @@ class SaveData {
     LifetimeStats? stats,
     Set<String>? unlockedAchievements,
     Set<String>? processedPurchases,
+    Set<String>? ownedSkins,
+    String? equippedSkin,
   }) => SaveData(
     coins: coins ?? this.coins,
     bestScore: bestScore ?? this.bestScore,
@@ -138,6 +146,8 @@ class SaveData {
     stats: stats ?? this.stats,
     unlockedAchievements: unlockedAchievements ?? this.unlockedAchievements,
     processedPurchases: processedPurchases ?? this.processedPurchases,
+    ownedSkins: ownedSkins ?? this.ownedSkins,
+    equippedSkin: equippedSkin ?? this.equippedSkin,
   );
 
   Map<String, Object?> toJson() => {
@@ -168,6 +178,8 @@ class SaveData {
     'stats': stats.toJson(),
     'unlockedAchievements': unlockedAchievements.toList()..sort(),
     'processedPurchases': processedPurchases.toList()..sort(),
+    'ownedSkins': ownedSkins.toList()..sort(),
+    'equippedSkin': equippedSkin,
   };
 
   /// Expects JSON already migrated to [currentVersion].
@@ -205,6 +217,8 @@ class SaveData {
     processedPurchases: {
       ...?(j['processedPurchases'] as List?)?.cast<String>(),
     },
+    ownedSkins: {'moth', ...?(j['ownedSkins'] as List?)?.cast<String>()},
+    equippedSkin: j['equippedSkin'] as String? ?? 'moth',
   );
 
   static Map<String, Object?>? _map(Object? o) =>
@@ -226,6 +240,7 @@ abstract final class SaveMigrator {
         0 => _v0ToV1(j),
         1 => _v1ToV2(j),
         2 => _v2ToV3(j),
+        3 => _v3ToV4(j),
         _ => throw StateError('No migration from $v'),
       };
       v = (j['version'] as num).toInt();
@@ -253,5 +268,11 @@ abstract final class SaveMigrator {
   static Map<String, Object?> _v2ToV3(Map<String, Object?> j) => {
     ...j,
     'version': 3,
+  };
+
+  /// v4 added flyer skins (`ownedSkins`, `equippedSkin`); both default to the Moth.
+  static Map<String, Object?> _v3ToV4(Map<String, Object?> j) => {
+    ...j,
+    'version': 4,
   };
 }

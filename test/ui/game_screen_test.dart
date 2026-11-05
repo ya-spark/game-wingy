@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wingy/core/ads/ad_service.dart';
+import 'package:wingy/core/profile/profile_store.dart';
+import 'package:wingy/core/purchase/purchase_service.dart';
 import 'package:wingy/core/services.dart';
 import 'package:wingy/game/flame/wingy_game.dart';
 import 'package:wingy/game/rules/wingy_run.dart';
@@ -242,6 +244,106 @@ void main() {
       closeTo(tester.getCenter(find.byKey(TestIds.gameOverHome)).dy, 1),
     );
   });
+
+  testWidgets('continue with fewer than 50 coins goes straight to the ad', (
+    tester,
+  ) async {
+    final ads = FakeAdService();
+    final s = await buildFakeServices(ads: ads);
+    await s.profile.addCoins(continueCoinCost - 1);
+    final g = await pumpGame(tester, s);
+    await tester.tap(find.byKey(TestIds.gameReady));
+    await killHero(tester, g);
+    await tester.tap(find.byKey(TestIds.gameOverRevive));
+    await frames(tester, 12);
+    expect(find.byKey(TestIds.gameOverContinueCoins), findsNothing);
+    expect(ads.rewardedShown, 1);
+    expect(g.run.phase, RunPhase.playing);
+    expect(s.profile.data.coins, continueCoinCost - 1);
+  });
+
+  testWidgets('continue with 50+ coins offers ad or coins; limit is shared', (
+    tester,
+  ) async {
+    final ads = FakeAdService();
+    final s = await buildFakeServices(ads: ads);
+    await s.profile.addCoins(200);
+    final g = await pumpGame(tester, s);
+    await tester.tap(find.byKey(TestIds.gameReady));
+    await killHero(tester, g);
+
+    // First continue: pay with coins, exactly 50, no ad.
+    await tester.tap(find.byKey(TestIds.gameOverRevive));
+    await frames(tester, 6);
+    expect(find.byKey(TestIds.gameOverContinueAd), findsOneWidget);
+    await tester.tap(find.byKey(TestIds.gameOverContinueCoins));
+    await frames(tester, 12);
+    expect(s.profile.data.coins, 200 - continueCoinCost);
+    expect(ads.rewardedShown, 0);
+    expect(g.run.phase, RunPhase.playing);
+    expect(g.run.revivesUsed, 1);
+
+    // Second continue: watch the ad, coins untouched.
+    await killHero(tester, g);
+    await tester.tap(find.byKey(TestIds.gameOverRevive));
+    await frames(tester, 6);
+    await tester.tap(find.byKey(TestIds.gameOverContinueAd));
+    await frames(tester, 12);
+    expect(ads.rewardedShown, 1);
+    expect(s.profile.data.coins, 200 - continueCoinCost);
+    expect(g.run.revivesUsed, 2);
+
+    // Third by coins; then the limit of three is reached whatever was paid.
+    await killHero(tester, g);
+    await tester.tap(find.byKey(TestIds.gameOverRevive));
+    await frames(tester, 6);
+    await tester.tap(find.byKey(TestIds.gameOverContinueCoins));
+    await frames(tester, 12);
+    expect(s.profile.data.coins, 200 - 2 * continueCoinCost);
+    await killHero(tester, g);
+    expect(find.byKey(TestIds.gameOverRevive), findsNothing);
+  });
+
+  testWidgets(
+    'Remove Ads: continue and Dash Refill are granted without an ad',
+    (tester) async {
+      final ads = FakeAdService();
+      final s = await buildFakeServices(ads: ads);
+      await s.profile.deliverPurchase(
+        const PurchaseUpdate('remove_ads_all', PurchaseStatus.purchased),
+        s.catalog,
+      );
+      await s.profile.addCoins(500);
+      final g = await pumpGame(tester, s);
+      await tester.tap(find.byKey(TestIds.gameReady));
+      await killHero(tester, g);
+
+      // Free Dash Refill from the sheet: no ad shown.
+      await tester.tap(find.byKey(TestIds.gameOverRefill));
+      await frames(tester, 8);
+      await tester.tap(find.byKey(TestIds.gameRefillAd));
+      await frames(tester, 8);
+      expect(s.profile.data.dashRefills, 1);
+      expect(ads.rewardedShown, 0);
+
+      // Continue: at once, no choice, no ad, no coins.
+      await tester.tap(find.byKey(TestIds.gameOverRevive));
+      await frames(tester, 12);
+      expect(find.byKey(TestIds.gameOverContinueCoins), findsNothing);
+      expect(ads.rewardedShown, 0);
+      expect(s.profile.data.coins, 500);
+      expect(g.run.phase, RunPhase.playing);
+
+      for (var i = 1; i < WingyWorld.maxRevives; i++) {
+        await killHero(tester, g);
+        await tester.tap(find.byKey(TestIds.gameOverRevive));
+        await frames(tester, 12);
+      }
+      await killHero(tester, g);
+      expect(find.byKey(TestIds.gameOverRevive), findsNothing); // limit of 3
+      expect(ads.rewardedShown, 0);
+    },
+  );
 
   testWidgets('declined revive ad keeps the dialog; retry records the run', (
     tester,

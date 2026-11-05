@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../core/profile/profile_store.dart';
 import '../core/services.dart';
+import '../core/skins/flyer_skins.dart';
 import '../game/flame/wingy_painter.dart';
 import '../game/rules/world.dart';
 import 'test_ids.dart';
@@ -74,6 +75,7 @@ class HomeHeroState extends State<HomeHero>
       _profile = profile..addListener(_onProfile);
     }
     _reduceMotion = profile.data.reduceMotion;
+    _painter.skin = FlyerSkins.of(profile.data.equippedSkin);
     _sync();
   }
 
@@ -81,12 +83,16 @@ class HomeHeroState extends State<HomeHero>
 
   void _onProfile() {
     _reduceMotion = _profile!.data.reduceMotion;
+    _painter.skin = FlyerSkins.of(_profile!.data.equippedSkin);
     _sync();
   }
 
   void _sync() {
     final shouldRun = !_covered && !_background && !_reduceMotion;
-    if (_reduceMotion) _time.value = _stillTime;
+    if (_reduceMotion) {
+      // Nudge so the still frame repaints after a skin change.
+      _time.value = _time.value == _stillTime ? _stillTime + 1e-6 : _stillTime;
+    }
     if (shouldRun && !_ticker.isActive) {
       _last = Duration.zero;
       _ticker.start();
@@ -198,8 +204,8 @@ class _HeroPainter extends CustomPainter {
         RRect.fromRectAndRadius(trail, const Radius.circular(7)),
         Paint()
           ..shader = ui.Gradient.linear(trail.centerRight, trail.centerLeft, [
-            Color.fromRGBO(255, 224, 102, 0.55 * f),
-            const Color(0x00FFE066),
+            Color(painter.skin.trail).withValues(alpha: 0.55 * f),
+            Color(painter.skin.trail & 0xFFFFFF),
           ]),
       );
     }

@@ -4,6 +4,7 @@ import 'package:wingy/core/retention/daily_reward.dart';
 import 'package:wingy/core/services.dart';
 import 'package:wingy/ui/home_hero.dart';
 import 'package:wingy/ui/test_ids.dart';
+import 'package:wingy/ui/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_services.dart';
@@ -21,6 +22,20 @@ Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 10; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// Taps a product's buy button and answers the parent gate correctly.
+Future<void> buyWithGate(WidgetTester tester, Services s, String id) async {
+  await tester.ensureVisible(find.byKey(TestIds.shopBuy(id)));
+  await settle(tester);
+  await tester.tap(find.byKey(TestIds.shopBuy(id)));
+  await settle(tester);
+  await tester.enterText(
+    find.byKey(TestIds.gateAnswer),
+    '${s.parentGate.question.answer}',
+  );
+  await tester.tap(find.byKey(TestIds.gateSubmit));
+  await settle(tester);
 }
 
 void main() {
@@ -114,19 +129,71 @@ void main() {
     final s = await buildFakeServices();
     await pumpApp(tester, s);
     await tester.tap(find.byKey(TestIds.homeShop));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(TestIds.shopBuy('remove_ads')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(TestIds.shopBuy('remove_ads')));
-    await tester.pumpAndSettle();
+    await settle(tester);
+    // The shop lists Remove Ads and all three coin packs.
+    for (final id in [
+      'remove_ads_all',
+      'coins_500',
+      'coins_1500',
+      'coins_4000',
+    ]) {
+      expect(find.byKey(TestIds.shopBuy(id)), findsOneWidget, reason: id);
+    }
+    await buyWithGate(tester, s, 'remove_ads_all');
     expect(s.profile.data.adsRemoved, isTrue);
     expect(s.ads.adsEnabled, isFalse);
-    expect(find.byKey(TestIds.shopBuy('remove_ads')), findsNothing);
-    await tester.ensureVisible(find.byKey(TestIds.shopBuy('coins_500')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(TestIds.shopBuy('coins_500')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(TestIds.shopBuy('remove_ads_all')), findsNothing);
+    await buyWithGate(tester, s, 'coins_500');
     expect(s.profile.data.coins, 500);
+  });
+
+  testWidgets('shop: a purchase is blocked until the gate is answered', (
+    tester,
+  ) async {
+    final s = await buildFakeServices();
+    await pumpApp(tester, s);
+    await tester.tap(find.byKey(TestIds.homeShop));
+    await settle(tester);
+    await tester.tap(find.byKey(TestIds.shopBuy('coins_500')));
+    await settle(tester);
+    expect(find.byKey(TestIds.gateDialog), findsOneWidget);
+    await tester.tap(find.byKey(TestIds.gateCancel));
+    await settle(tester);
+    expect(s.profile.data.coins, 0);
+    expect(find.byKey(TestIds.gateDialog), findsNothing);
+  });
+
+  testWidgets('shop: wings are bought with coins and equipped', (tester) async {
+    final s = await buildFakeServices();
+    await s.profile.addCoins(350);
+    await pumpApp(tester, s);
+    await tester.tap(find.byKey(TestIds.homeShop));
+    await settle(tester);
+    // Too expensive: the buy button is disabled.
+    await tester.ensureVisible(find.byKey(TestIds.shopSkinBuy('firefly')));
+    await settle(tester);
+    await tester.tap(find.byKey(TestIds.shopSkinBuy('firefly')));
+    await settle(tester);
+    expect(s.profile.ownsSkin('firefly'), isFalse);
+    expect(s.profile.data.coins, 350);
+    await tester.ensureVisible(find.byKey(TestIds.shopSkinBuy('butterfly')));
+    await settle(tester);
+    await tester.tap(find.byKey(TestIds.shopSkinBuy('butterfly')));
+    await settle(tester);
+    expect(s.profile.data.coins, 50);
+    expect(s.profile.equippedSkin, 'butterfly');
+    await tester.ensureVisible(find.byKey(TestIds.shopSkinEquip('moth')));
+    await settle(tester);
+    await tester.tap(find.byKey(TestIds.shopSkinEquip('moth')));
+    await settle(tester);
+    expect(s.profile.equippedSkin, 'moth');
+  });
+
+  testWidgets('the coin icon replaces the old icon on home', (tester) async {
+    final s = await buildFakeServices();
+    await pumpApp(tester, s);
+    expect(find.byType(CoinIcon), findsWidgets);
+    expect(find.byIcon(Icons.monetization_on), findsNothing);
   });
 
   testWidgets('settings toggles persist to the profile', (tester) async {

@@ -13,6 +13,7 @@ import '../retention/daily_reward.dart';
 import '../retention/streaks.dart';
 import '../save/save_data.dart';
 import '../save/save_service.dart';
+import '../skins/flyer_skins.dart';
 
 /// Result of one finished run, fed into stats / challenges / achievements.
 class GameSummary {
@@ -41,6 +42,9 @@ class GameSummary {
   /// Coins earned in the run (orbs plus score coins); credited by [ProfileStore].
   final int coins;
 }
+
+/// Coins a Continue costs when paid with coins instead of a rewarded ad.
+const int continueCoinCost = 50;
 
 /// Holds the player's [SaveData], applies the retention engines and persists every change.
 /// UI listens to it; game rules never touch it.
@@ -241,6 +245,32 @@ class ProfileStore extends ChangeNotifier {
     return true;
   }
 
+  // ---- flyer skins ----------------------------------------------------------
+
+  bool ownsSkin(String id) => _data.ownedSkins.contains(id);
+  String get equippedSkin => _data.equippedSkin;
+
+  /// Buys a skin with coins and equips it. False when unknown, owned or too expensive.
+  Future<bool> buySkin(String id) async {
+    final skin = FlyerSkins.byId(id);
+    if (skin == null || ownsSkin(id) || _data.coins < skin.price) return false;
+    await _commit(
+      _data.copyWith(
+        coins: _data.coins - skin.price,
+        ownedSkins: {..._data.ownedSkins, id},
+        equippedSkin: id,
+      ),
+    );
+    return true;
+  }
+
+  /// Equips an owned skin.
+  Future<bool> equipSkin(String id) async {
+    if (!ownsSkin(id)) return false;
+    await _commit(_data.copyWith(equippedSkin: id));
+    return true;
+  }
+
   // ---- Dash Refill / streak freeze ---------------------------------------
 
   static const int dashRefillCoinCost = 40;
@@ -334,7 +364,10 @@ class ProfileStore extends ChangeNotifier {
         u.status != PurchaseStatus.restored) {
       return;
     }
-    final def = catalog.byId(u.productId);
+    final id = u.productId == ProductDef.legacyRemoveAdsId
+        ? ProductDef.removeAdsId
+        : u.productId;
+    final def = catalog.byId(id);
     if (def == null) return;
     var d = _data;
     if (def.type == ProductType.consumable) {

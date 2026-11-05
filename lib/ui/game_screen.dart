@@ -9,12 +9,14 @@ import '../core/ads/ad_service.dart';
 import '../core/audio/audio_service.dart';
 import '../core/profile/profile_store.dart';
 import '../core/services.dart';
+import '../core/skins/flyer_skins.dart';
 import '../game/flame/wingy_game.dart';
 import '../game/rules/wingy_run.dart';
 import '../game/rules/world.dart';
 import 'game_over_panel.dart';
 import 'share_card.dart';
 import 'test_ids.dart';
+import 'widgets.dart';
 
 /// Player-facing label of the game over continue action (rewarded ad). Rename it here only.
 const String continueLabel = 'Continue';
@@ -355,14 +357,46 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     switch (action) {
       case 'revive':
-        final earned = await s.ads.showRewarded(AdPlacement.revive);
+        // Remove Ads: continue at once. Under 50 coins: straight to the ad. Otherwise ask.
+        var how = 'ad';
+        if (!s.profile.data.adsRemoved &&
+            s.profile.data.coins >= continueCoinCost) {
+          final choice = await showDialog<String>(
+            context: context,
+            builder: (_) => const _ContinueChoice(),
+          );
+          if (!mounted) return;
+          if (choice == null) {
+            _showGameOver(s);
+            return;
+          }
+          how = choice;
+        }
+        final bool paid;
+        if (how == 'coins') {
+          paid = await s.profile.spendCoins(continueCoinCost);
+        } else {
+          paid = await s.rewarded(AdPlacement.revive);
+        }
         if (!mounted) return;
-        if (earned && run.revive()) {
+        if (paid && run.revive()) {
           game.revived();
           return;
         }
+        if (paid && how == 'coins') {
+          await s.profile.addCoins(
+            continueCoinCost,
+          ); // revive refused: give back
+          if (!mounted) return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ad not available. Try again later.')),
+          SnackBar(
+            content: Text(
+              how == 'coins'
+                  ? 'Not enough coins.'
+                  : 'Ad not available. Try again later.',
+            ),
+          ),
         );
         _showGameOver(s);
       case 'retry':
@@ -390,6 +424,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final s = ServicesScope.of(context);
     final game = _ensureGame(s);
     game.reduceMotion = s.profile.data.reduceMotion;
+    game.skin = FlyerSkins.of(s.profile.data.equippedSkin);
     final run = game.run;
     final left = s.profile.data.leftHanded;
     final dashState = run.isDashing
@@ -650,6 +685,40 @@ class _DashButton extends StatelessWidget {
   }
 }
 
+/// Small choice shown on Continue when the player has enough coins: ad (free) or coins.
+class _ContinueChoice extends StatelessWidget {
+  const _ContinueChoice();
+
+  @override
+  Widget build(BuildContext context) => SimpleDialog(
+    title: const Text('Continue'),
+    children: [
+      SimpleDialogOption(
+        key: TestIds.gameOverContinueAd,
+        onPressed: () => Navigator.pop(context, 'ad'),
+        child: const Row(
+          spacing: 8,
+          children: [
+            Icon(Icons.smart_display),
+            Flexible(child: Text('Watch an ad (free)')),
+          ],
+        ),
+      ),
+      SimpleDialogOption(
+        key: TestIds.gameOverContinueCoins,
+        onPressed: () => Navigator.pop(context, 'coins'),
+        child: const Row(
+          spacing: 8,
+          children: [
+            CoinIcon(),
+            Flexible(child: Text('Use $continueCoinCost coins')),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
 /// Bottom sheet offering a Dash Refill for coins or for a rewarded ad.
 class _RefillSheet extends StatelessWidget {
   const _RefillSheet({required this.services});
@@ -672,7 +741,7 @@ class _RefillSheet extends StatelessWidget {
             ),
             FilledButton.icon(
               key: TestIds.gameRefillCoins,
-              icon: const Icon(Icons.monetization_on),
+              icon: const CoinIcon(),
               label: Text('Use ${ProfileStore.dashRefillCoinCost} coins'),
               onPressed: p.data.coins >= ProfileStore.dashRefillCoinCost
                   ? () async {
@@ -687,7 +756,7 @@ class _RefillSheet extends StatelessWidget {
               label: Text('Watch an ad (${p.adRefillsLeft} left today)'),
               onPressed: p.adRefillsLeft > 0
                   ? () async {
-                      final earned = await services.ads.showRewarded(
+                      final earned = await services.rewarded(
                         AdPlacement.dashRefill,
                       );
                       final ok = earned && await p.grantAdDashRefill();

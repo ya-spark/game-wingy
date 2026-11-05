@@ -11,6 +11,7 @@ import 'identity/identity_service.dart';
 import 'leaderboard/leaderboard_service.dart';
 import 'notifications/local_notification_service.dart';
 import 'notifications/notification_service.dart';
+import 'parent_gate.dart';
 import 'profile/profile_store.dart';
 import 'purchase/play_purchase_service.dart';
 import 'purchase/purchase_service.dart';
@@ -53,6 +54,16 @@ class Services {
   final ProfileStore profile;
   final ShareService share;
   final TipService tips;
+
+  /// Parent gate state (wrong-answer counter and lock) shared by every purchase button.
+  late ParentGate parentGate = ParentGate();
+
+  /// Shows a rewarded ad and returns true when the reward is earned. With Remove Ads owned
+  /// there are no ads at all: the reward is granted instantly.
+  Future<bool> rewarded(AdPlacement placement) async {
+    if (profile.data.adsRemoved) return true;
+    return ads.showRewarded(placement);
+  }
 
   /// Production wiring (Android v1).
   static Future<Services> create({

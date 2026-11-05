@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   KeyedSubtree(
                                     key: TestIds.homeCoins,
                                     child: StatChip(
-                                      icon: Icons.monetization_on,
+                                      leading: const CoinIcon(),
                                       label: '${profile.data.coins}',
                                       color: Colors.amber,
                                     ),

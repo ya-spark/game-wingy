@@ -9,7 +9,7 @@ abstract interface class AdService {
   /// Ads are served and allowed (consent given, not removed, IDs configured).
   bool get adsEnabled;
 
-  /// Player bought "remove ads": banner and interstitials stop; rewarded stays available.
+  /// Player bought "remove ads": no banner, interstitial or rewarded ads (rewards are granted instantly).
   set adsRemoved(bool value);
 
   bool get isRewardedReady;

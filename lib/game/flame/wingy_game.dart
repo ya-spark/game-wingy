@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/game.dart';
 
+import '../../core/skins/flyer_skins.dart';
 import '../rules/wingy_run.dart';
 import 'wingy_painter.dart';
 
@@ -32,6 +33,9 @@ class WingyGame extends FlameGame {
   Object? _lastSnapshot;
 
   set reduceMotion(bool v) => _painter.reduceMotion = v;
+
+  /// Cosmetic flyer skin (looks only; rules and hitbox are unchanged).
+  set skin(FlyerSkin v) => _painter.skin = v;
 
   @override
   Color backgroundColor() => const Color(0xFF1B1446);

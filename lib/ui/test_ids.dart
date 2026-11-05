@@ -35,6 +35,8 @@ abstract final class TestIds {
   static const gameOverBest = Key('game.over.best');
   static const gameOverMedal = Key('game.over.medal');
   static const gameOverRevive = Key('game.over.revive');
+  static const gameOverContinueAd = Key('game.over.continue.ad');
+  static const gameOverContinueCoins = Key('game.over.continue.coins');
   static const gameOverRefill = Key('game.over.refill');
   static const gameOverRetry = Key('game.over.retry');
   static const gameOverHome = Key('game.over.home');
@@ -68,6 +70,16 @@ abstract final class TestIds {
   static Key shopBuy(String productId) => Key('shop.buy.$productId');
   static const shopBuyRefill = Key('shop.buy.dash_refill');
   static const shopBuyFreeze = Key('shop.buy.streak_freeze');
+
+  static Key shopSkin(String id) => Key('shop.skin.$id');
+  static Key shopSkinBuy(String id) => Key('shop.skin.$id.buy');
+  static Key shopSkinEquip(String id) => Key('shop.skin.$id.equip');
+
+  // Parent gate
+  static const gateDialog = Key('gate.dialog');
+  static const gateAnswer = Key('gate.answer');
+  static const gateSubmit = Key('gate.submit');
+  static const gateCancel = Key('gate.cancel');
 
   // Settings
   static const settingsSound = Key('settings.sound');

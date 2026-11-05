@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _catalog = ProductCatalog([
   ProductDef(
-    id: 'remove_ads',
+    id: 'remove_ads_all',
     type: ProductType.nonConsumable,
     title: 'Remove Ads',
     description: '',
@@ -139,10 +139,63 @@ void main() {
   test('remove-ads purchase sets the flag; restore is idempotent', () async {
     final p = make();
     await p.init();
-    const u = PurchaseUpdate('remove_ads', PurchaseStatus.purchased);
+    const u = PurchaseUpdate('remove_ads_all', PurchaseStatus.purchased);
     await p.deliverPurchase(u, _catalog);
     await p.deliverPurchase(u, _catalog);
     expect(p.data.adsRemoved, isTrue);
+  });
+
+  test(
+    'a restore of the retired remove_ads id still counts as owned',
+    () async {
+      final p = make();
+      await p.init();
+      await p.deliverPurchase(
+        const PurchaseUpdate('remove_ads', PurchaseStatus.restored),
+        _catalog,
+      );
+      expect(p.data.adsRemoved, isTrue);
+    },
+  );
+
+  group('flyer skins', () {
+    test('buying deducts the price, owns and equips the skin', () async {
+      final p = make();
+      await p.init();
+      await p.addCoins(1000);
+      expect(await p.buySkin('butterfly'), isTrue);
+      expect(p.data.coins, 700);
+      expect(p.ownsSkin('butterfly'), isTrue);
+      expect(p.equippedSkin, 'butterfly');
+      expect(await p.buySkin('butterfly'), isFalse); // already owned
+      expect(p.data.coins, 700);
+    });
+
+    test('not enough coins is refused', () async {
+      final p = make();
+      await p.init();
+      await p.addCoins(299);
+      expect(await p.buySkin('butterfly'), isFalse);
+      expect(p.data.coins, 299);
+      expect(p.ownsSkin('butterfly'), isFalse);
+      expect(await p.buySkin('nope'), isFalse);
+    });
+
+    test('owned skins can be equipped, unowned cannot; persists', () async {
+      final p = make();
+      await p.init();
+      await p.addCoins(2000);
+      await p.buySkin('firefly');
+      expect(await p.equipSkin('moth'), isTrue);
+      expect(p.equippedSkin, 'moth');
+      expect(await p.equipSkin('star_sprite'), isFalse);
+      await p.equipSkin('firefly');
+      final again = make();
+      await again.init();
+      expect(again.equippedSkin, 'firefly');
+      expect(again.ownsSkin('firefly'), isTrue);
+      expect(again.ownsSkin('moth'), isTrue);
+    });
   });
 
   test('consumable is granted once per purchase id', () async {
@@ -171,7 +224,7 @@ void main() {
     final p = make();
     await p.init();
     await p.deliverPurchase(
-      const PurchaseUpdate('remove_ads', PurchaseStatus.canceled),
+      const PurchaseUpdate('remove_ads_all', PurchaseStatus.canceled),
       _catalog,
     );
     expect(p.data.adsRemoved, isFalse);

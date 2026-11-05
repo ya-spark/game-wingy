@@ -23,6 +23,10 @@ class ProductDef {
   final String? grants;
 
   static const String removeAdsGrant = 'remove_ads';
+
+  /// Product id of Remove Ads, and the retired id whose saved purchases still count.
+  static const String removeAdsId = 'remove_ads_all';
+  static const String legacyRemoveAdsId = 'remove_ads';
 }
 
 class ProductCatalog {

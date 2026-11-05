@@ -66,14 +66,80 @@ class _BobbingState extends State<Bobbing> with SingleTickerProviderStateMixin {
   );
 }
 
+/// The coin: gold disc, darker rim, inner ring, soft shine and "MC" in dark gold.
+/// Drawn in code (no assets).
+class CoinIcon extends StatelessWidget {
+  const CoinIcon({super.key, this.size = 24});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'coins',
+    child: ExcludeSemantics(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          painter: _CoinPainter(),
+          child: Center(
+            child: Text(
+              'MC',
+              style: TextStyle(
+                fontSize: size * 0.36,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF8A5A00),
+                height: 1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _CoinPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    canvas.drawCircle(c, r, Paint()..color = const Color(0xFFC98A00));
+    canvas.drawCircle(c, r * 0.9, Paint()..color = const Color(0xFFFFC933));
+    canvas.drawCircle(
+      c,
+      r * 0.68,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * 0.09
+        ..color = const Color(0xFFE0A100),
+    );
+    // Soft shine, upper left.
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: c + Offset(-r * 0.38, -r * 0.45),
+        width: r * 0.6,
+        height: r * 0.3,
+      ),
+      Paint()..color = const Color(0x66FFFFFF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CoinPainter old) => false;
+}
+
 class StatChip extends StatelessWidget {
   const StatChip({
     super.key,
-    required this.icon,
+    this.icon,
+    this.leading,
     required this.label,
     this.color,
-  });
-  final IconData icon;
+  }) : assert(icon != null || leading != null);
+  final IconData? icon;
+
+  /// Used instead of [icon] when set (for example a [CoinIcon]).
+  final Widget? leading;
   final String label;
   final Color? color;
 
@@ -88,7 +154,7 @@ class StatChip extends StatelessWidget {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 24, color: color ?? KidColors.ocean),
+        leading ?? Icon(icon, size: 24, color: color ?? KidColors.ocean),
         const SizedBox(width: 6),
         Flexible(
           child: FittedBox(

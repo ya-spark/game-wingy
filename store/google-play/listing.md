@@ -38,7 +38,7 @@ Tap, flap, glow.
 
 ## Play Console declarations
 - Contains ads: **Yes**
-- In-app purchases: Yes (`remove_ads` non-consumable, `coins_500` consumable; prices set in Play Console)
+- In-app purchases: Yes (`remove_ads_all` non-consumable, `coins_500`, `coins_1500`, `coins_4000` consumable; prices set in Play Console)
 - Target audience: **13+ (teen) / general audience. Not children, not "Designed for Families".** Do not select any age group under 13.
 - Content rating (IARC questionnaire): category Game, no violence, no blood, no sexual content, no profanity, no controlled substances, no gambling or simulated gambling, no user-generated content, no user interaction or chat, no location sharing, digital purchases = Yes. Expected result: **Everyone / PEGI 3 / USK 0**.
 - News app: No. Government app: No. Financial features: No. Health features: No.
