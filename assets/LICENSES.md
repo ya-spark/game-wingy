@@ -38,6 +38,8 @@ its source and license. `scripts/check_asset_licenses.sh` fails CI otherwise.
 | assets/voice/well_done.mp3 | AI-generated narration (voice "david") | project-owned (confirm TTS provider's commercial terms) | own-made, ya-spark |
 | assets/voice/well_done_02.mp3 | AI-generated narration (voice "david") | project-owned (confirm TTS provider's commercial terms) | own-made, ya-spark |
 | assets/voice/you_did_it.mp3 | AI-generated narration (voice "david") | project-owned (confirm TTS provider's commercial terms) | own-made, ya-spark |
+| assets/ambience/night.mp3 | Pixabay Sound Effects (pixabay.com/sound-effects), author NCPrime, Pixabay file id 291477; converted to mono 64 kbps MP3 with a crossfaded loop point | Pixabay Content License (royalty-free, commercial use allowed; confirmed by owner) | not wired into the game yet; page URL not recorded |
+| assets/ambience/bird.mp3 | Pixabay Sound Effects (pixabay.com/sound-effects), author Yuliana Yurukova, Pixabay file id 333090; converted to mono 64 kbps MP3 with a crossfaded loop point | Pixabay Content License (royalty-free, commercial use allowed; confirmed by owner) | not wired into the game yet; page URL not recorded |
 
 Store graphics and launcher icons (not under `assets/`, drawn by `scripts/gen_store_art.py`, own work, CC0-1.0):
 `store/google-play/graphics/icon-512.png`, `store/google-play/graphics/feature-graphic-1024x500.png`,
