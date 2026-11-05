@@ -51,9 +51,25 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  void _syncAudio(Services s) {
+    final d = s.profile.data;
+    _audio.apply(
+      sound: d.soundOn,
+      volume: d.masterVolume,
+      ambience: d.ambience,
+      voice: d.voiceOn,
+      sfx: d.sfxOn,
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) _pause();
+    if (state != AppLifecycleState.resumed) {
+      _audio.pauseAmbience();
+      _pause();
+    } else if (!_pauseOpen) {
+      _audio.startAmbience();
+    }
   }
 
   WingyRun _newRun(Services s, {int meter = 0}) => WingyRun(
@@ -78,7 +94,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       if (e.type == RunEventType.hit) HapticFeedback.mediumImpact();
     };
     game.onGameOver = () {
-      _audio.enabled = s.profile.data.soundOn;
+      _syncAudio(s);
       _audio.sfx('game_over');
       if (game.run.score > s.profile.data.bestScore) {
         _audio.voice('better_than_the_best');
@@ -87,7 +103,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       }
       _showGameOver(s);
     };
-    _audio.enabled = s.profile.data.soundOn;
+    _syncAudio(s);
+    _audio.startAmbience();
     _audio.voice('get_ready');
     return _game = game;
   }
@@ -104,7 +121,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   ];
 
   void _playEventAudio(Services s, WingyGame game, RunEvent e) {
-    _audio.enabled = s.profile.data.soundOn;
+    _syncAudio(s);
     switch (e.type) {
       case RunEventType.flap:
         _audio.sfx('flap');
@@ -191,6 +208,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     if (game.run.isDead) return;
     final s = ServicesScope.of(context);
     game.pause();
+    _audio.pauseAmbience();
     _pauseOpen = true;
     final action = await showDialog<String>(
       context: context,
@@ -217,6 +235,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       await _quit(s);
     } else {
       game.resume();
+      _audio.startAmbience();
     }
   }
 
@@ -347,6 +366,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final game = _ensureGame(s);
     game.reduceMotion = s.profile.data.reduceMotion;
     final run = game.run;
+    final left = s.profile.data.leftHanded;
     final dashState = run.isDashing
         ? 'active'
         : (run.canDash ? 'ready' : 'off');
@@ -366,9 +386,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
               children: [
                 Positioned(
                   top: 8,
-                  left: 8,
+                  left: left ? null : 8,
+                  right: left ? 8 : null,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: left
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
                     children: [
                       IconButton.filledTonal(
                         key: TestIds.gameBack,
@@ -394,7 +417,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 ),
                 Positioned(
                   top: 8,
-                  right: 8,
+                  left: left ? 8 : null,
+                  right: left ? null : 8,
                   child: IconButton.filledTonal(
                     key: TestIds.gamePause,
                     icon: const Icon(Icons.pause),
@@ -403,7 +427,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 ),
                 Positioned(
                   bottom: 28,
-                  right: 20,
+                  left: left ? 20 : null,
+                  right: left ? null : 20,
                   child: Semantics(
                     key: TestIds.gameDashState,
                     identifier: 'game.dash.state',

@@ -54,6 +54,28 @@ Future<void> killHero(WidgetTester tester, WingyGame g) async {
 }
 
 void main() {
+  testWidgets('left hand mirrors dash, pause and meter; right is default', (
+    tester,
+  ) async {
+    final s = await buildFakeServices();
+    await pumpGame(tester, s);
+    expect(tester.getCenter(find.byKey(TestIds.gameDash)).dx, greaterThan(200));
+    expect(
+      tester.getCenter(find.byKey(TestIds.gamePause)).dx,
+      greaterThan(200),
+    );
+    expect(tester.getCenter(find.byKey(TestIds.gameMeter)).dx, lessThan(200));
+    await tester.pumpWidget(const SizedBox());
+    await s.profile.setLeftHanded(true);
+    await pumpGame(tester, s);
+    expect(tester.getCenter(find.byKey(TestIds.gameDash)).dx, lessThan(200));
+    expect(tester.getCenter(find.byKey(TestIds.gamePause)).dx, lessThan(200));
+    expect(
+      tester.getCenter(find.byKey(TestIds.gameMeter)).dx,
+      greaterThan(200),
+    );
+  });
+
   testWidgets('game screen has no banner; ready hint starts the run', (
     tester,
   ) async {

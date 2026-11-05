@@ -1,59 +1,201 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
-/// Plays short sound effects and the narrator voice clips. Failures (missing plugin in
-/// tests, no audio device) are swallowed: sound is never worth crashing a run.
+import 'voice_arbiter.dart';
+
+/// Ambience tracks: id, label, file in assets/ambience/ ('off' has no file).
+const List<(String, String, String?)> ambienceTracks = [
+  ('off', 'Off', null),
+  ('night', 'Night', 'night.mp3'),
+  ('bird', 'Bird', 'bird.mp3'),
+  ('morning_birds', 'Morning birds', 'morning_birds.mp3'),
+  ('before_sunrise', 'Before sunrise', 'before_sunrise.mp3'),
+  ('heartbeat', 'Heartbeat', 'heartbeat.mp3'),
+];
+
+/// Plays effects, narrator voice and the looping background sound. Failures (missing
+/// plugin in tests, no audio device) are swallowed: sound is never worth crashing a run.
 class AudioService {
-  AudioService({Random? random}) : _random = random ?? Random();
+  AudioService({Random? random}) : _random = random ?? Random() {
+    _arbiter = VoiceArbiter(_VoicePlayerOutput(this), onSpeaking: _duck);
+  }
 
   final Random _random;
   final List<AudioPlayer> _sfx = [];
   AudioPlayer? _voice;
+  AudioPlayer? _ambience;
+  late final VoiceArbiter _arbiter;
   int _next = 0;
 
-  /// Master switch, kept in sync with the Sound setting.
+  /// Settings, kept in sync with the profile via [apply].
   bool enabled = true;
+  bool voiceOn = true;
+  bool sfxOn = true;
+  double masterVolume = 1.0;
+  String ambienceId = 'night';
+
+  bool _ambienceWanted = false;
+  bool _ambiencePlaying = false;
+  String? _ambienceLoaded;
 
   static const int _sfxChannels = 4;
+  static const double ambienceVolume = 0.25;
+  static const double ambienceDuckedVolume = 0.1;
+  static const double sfxVolume = 0.7;
+
+  /// Effects, voice and ambience never take Android audio focus, so they cannot
+  /// interrupt each other (or the narrator).
+  static final AudioContext _context = AudioContextConfig(
+    focus: AudioContextConfigFocus.mixWithOthers,
+  ).build();
+
+  void apply({
+    required bool sound,
+    required double volume,
+    required String ambience,
+    required bool voice,
+    required bool sfx,
+  }) {
+    enabled = sound;
+    masterVolume = volume;
+    voiceOn = voice;
+    sfxOn = sfx;
+    if (ambience != ambienceId) {
+      ambienceId = ambience;
+      _ambienceLoaded = null;
+    }
+    unawaited(_syncAmbience());
+  }
 
   /// Plays `assets/sfx/<name>.wav`; overlapping effects use a small round-robin pool.
-  Future<void> sfx(String name) => _play(_pool(), 'sfx/$name.wav', volume: 0.7);
+  Future<void> sfx(String name) async {
+    if (!enabled || !sfxOn) return;
+    final p = _pool();
+    try {
+      await p.stop();
+      await p.setVolume(sfxVolume * masterVolume);
+      await p.play(AssetSource('sfx/$name.wav'));
+    } catch (e) {
+      debugPrint('audio: sfx/$name failed: $e');
+    }
+  }
 
-  /// Plays `assets/voice/<name>.mp3`, cutting off any clip still speaking.
+  /// Plays `assets/voice/<name>.mp3` unless a clip is speaking (see [VoiceArbiter]).
   /// A name with `_02` variants may pass [variants] to pick one at random.
-  Future<void> voice(String name, {int variants = 1}) {
+  Future<void> voice(String name, {int variants = 1}) async {
+    if (!enabled || !voiceOn) return;
     final n = variants <= 1 ? 1 : _random.nextInt(variants) + 1;
     final file = n == 1 ? name : '${name}_${n.toString().padLeft(2, '0')}';
-    return _play(_voice ??= AudioPlayer(), 'voice/$file.mp3');
+    try {
+      await _arbiter.say('voice/$file.mp3', voicePriorityOf(name));
+    } catch (e) {
+      debugPrint('audio: voice/$file failed: $e');
+    }
+  }
+
+  // ---- ambience --------------------------------------------------------------
+
+  /// Game screen opened / resumed.
+  Future<void> startAmbience() {
+    _ambienceWanted = true;
+    return _syncAmbience();
+  }
+
+  /// Pause and app in background.
+  Future<void> pauseAmbience() {
+    _ambienceWanted = false;
+    return _syncAmbience();
+  }
+
+  Future<void> _syncAmbience() async {
+    String? file;
+    for (final t in ambienceTracks) {
+      if (t.$1 == ambienceId) file = t.$3;
+    }
+    final shouldPlay = _ambienceWanted && enabled && file != null;
+    try {
+      if (!shouldPlay) {
+        if (_ambiencePlaying) await _ambience?.pause();
+        _ambiencePlaying = false;
+        return;
+      }
+      final pl = _ambience ??= AudioPlayer()..setAudioContext(_context);
+      await pl.setReleaseMode(ReleaseMode.loop);
+      await pl.setVolume(_ambienceLevel());
+      if (_ambienceLoaded != file) {
+        _ambienceLoaded = file;
+        await pl.play(AssetSource('ambience/$file'));
+      } else if (!_ambiencePlaying) {
+        await pl.resume();
+      }
+      _ambiencePlaying = true;
+    } catch (e) {
+      debugPrint('audio: ambience failed: $e');
+    }
+  }
+
+  double _ambienceLevel() =>
+      (_arbiter.speaking ? ambienceDuckedVolume : ambienceVolume) *
+      masterVolume;
+
+  void _duck(bool speaking) {
+    if (!_ambiencePlaying) return;
+    try {
+      _ambience?.setVolume(_ambienceLevel());
+    } catch (_) {}
   }
 
   AudioPlayer _pool() {
     if (_sfx.length < _sfxChannels) {
-      final p = AudioPlayer();
+      final p = AudioPlayer()..setAudioContext(_context);
       _sfx.add(p);
       return p;
     }
     return _sfx[_next++ % _sfxChannels];
   }
 
-  Future<void> _play(AudioPlayer p, String asset, {double volume = 1}) async {
-    if (!enabled) return;
-    try {
-      await p.stop();
-      await p.setVolume(volume);
-      await p.play(AssetSource(asset));
-    } catch (e) {
-      debugPrint('audio: $asset failed: $e');
-    }
-  }
-
   Future<void> dispose() async {
-    for (final p in [..._sfx, ?_voice]) {
+    _arbiter.reset();
+    _ambienceWanted = false;
+    for (final p in [..._sfx, ?_voice, ?_ambience]) {
       try {
         await p.dispose();
       } catch (_) {}
     }
+  }
+}
+
+class _VoicePlayerOutput implements VoiceOutput {
+  _VoicePlayerOutput(this._s);
+  final AudioService _s;
+  StreamSubscription<void>? _sub;
+
+  AudioPlayer get _p =>
+      _s._voice ??= AudioPlayer()..setAudioContext(AudioService._context);
+
+  @override
+  Future<void> start(String asset, void Function() onFinished) async {
+    final p = _p;
+    await _sub?.cancel();
+    _sub = p.onPlayerComplete.listen((_) => onFinished());
+    try {
+      await p.setVolume(_s.masterVolume);
+      await p.play(AssetSource(asset));
+    } catch (e) {
+      debugPrint('audio: $asset failed: $e');
+      onFinished();
+    }
+  }
+
+  @override
+  Future<Duration?> remaining() async {
+    final p = _p;
+    final d = await p.getDuration();
+    final pos = await p.getCurrentPosition();
+    if (d == null || pos == null) return null;
+    return d - pos;
   }
 }

@@ -66,6 +66,11 @@ abstract final class TestIds {
 
   // Settings
   static const settingsSound = Key('settings.sound');
+  static const settingsVolume = Key('settings.volume');
+  static const settingsAmbience = Key('settings.ambience');
+  static const settingsVoice = Key('settings.voice');
+  static const settingsSfx = Key('settings.sfx');
+  static const settingsHand = Key('settings.hand');
   static const settingsHaptics = Key('settings.haptics');
   static const settingsReduceMotion = Key('settings.reduceMotion');
   static const settingsReminders = Key('settings.reminders');

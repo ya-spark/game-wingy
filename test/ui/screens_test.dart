@@ -116,6 +116,39 @@ void main() {
     expect(find.byKey(TestIds.settingsPlayGames), findsNothing);
   });
 
+  testWidgets('sound and hand settings persist to the profile', (tester) async {
+    final s = await buildFakeServices();
+    expect(s.profile.data.masterVolume, 1.0);
+    expect(s.profile.data.ambience, 'night');
+    expect(s.profile.data.voiceOn, isTrue);
+    expect(s.profile.data.sfxOn, isTrue);
+    expect(s.profile.data.leftHanded, isFalse);
+    await pumpApp(tester, s);
+    await tester.tap(find.byKey(TestIds.homeSettings));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(TestIds.settingsVoice));
+    await tester.pumpAndSettle();
+    expect(s.profile.data.voiceOn, isFalse);
+    await tester.tap(find.byKey(TestIds.settingsSfx));
+    await tester.pumpAndSettle();
+    expect(s.profile.data.sfxOn, isFalse);
+    await tester.drag(
+      find.byKey(TestIds.settingsVolume),
+      const Offset(-4000, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(s.profile.data.masterVolume, 0.0);
+    await tester.tap(find.byKey(TestIds.settingsAmbience));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Heartbeat').last);
+    await tester.pumpAndSettle();
+    expect(s.profile.data.ambience, 'heartbeat');
+    await tester.ensureVisible(find.byKey(TestIds.settingsHand));
+    await tester.tap(find.text('Left'));
+    await tester.pumpAndSettle();
+    expect(s.profile.data.leftHanded, isTrue);
+  });
+
   testWidgets('play opens the game; back returns home with no banner in game', (
     tester,
   ) async {

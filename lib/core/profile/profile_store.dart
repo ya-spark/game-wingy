@@ -302,6 +302,12 @@ class ProfileStore extends ChangeNotifier {
       _commit(_data.copyWith(reduceMotion: v));
 
   Future<void> setSound(bool v) => _commit(_data.copyWith(soundOn: v));
+  Future<void> setMasterVolume(double v) =>
+      _commit(_data.copyWith(masterVolume: v.clamp(0.0, 1.0)));
+  Future<void> setAmbience(String id) => _commit(_data.copyWith(ambience: id));
+  Future<void> setVoice(bool v) => _commit(_data.copyWith(voiceOn: v));
+  Future<void> setSfx(bool v) => _commit(_data.copyWith(sfxOn: v));
+  Future<void> setLeftHanded(bool v) => _commit(_data.copyWith(leftHanded: v));
   Future<void> setVibration(bool v) => _commit(_data.copyWith(vibrationOn: v));
   Future<void> setReminders(bool v) => _commit(_data.copyWith(remindersOn: v));
 

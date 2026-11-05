@@ -10,6 +10,11 @@ class SaveData {
     this.bestScore = 0,
     this.adsRemoved = false,
     this.soundOn = true,
+    this.masterVolume = 1.0,
+    this.ambience = 'night',
+    this.voiceOn = true,
+    this.sfxOn = true,
+    this.leftHanded = false,
     this.vibrationOn = true,
     this.remindersOn = false,
     this.reduceMotion = false,
@@ -33,6 +38,15 @@ class SaveData {
   final int bestScore;
   final bool adsRemoved;
   final bool soundOn;
+
+  /// Master volume 0..1, ambience track id ('off', 'night', ...), voice and effects switches.
+  final double masterVolume;
+  final String ambience;
+  final bool voiceOn;
+  final bool sfxOn;
+
+  /// Left-handed layout: in-game buttons mirrored.
+  final bool leftHanded;
   final bool vibrationOn;
   final bool remindersOn;
   final bool reduceMotion;
@@ -63,6 +77,11 @@ class SaveData {
     int? bestScore,
     bool? adsRemoved,
     bool? soundOn,
+    double? masterVolume,
+    String? ambience,
+    bool? voiceOn,
+    bool? sfxOn,
+    bool? leftHanded,
     bool? vibrationOn,
     bool? remindersOn,
     bool? reduceMotion,
@@ -82,6 +101,11 @@ class SaveData {
     bestScore: bestScore ?? this.bestScore,
     adsRemoved: adsRemoved ?? this.adsRemoved,
     soundOn: soundOn ?? this.soundOn,
+    masterVolume: masterVolume ?? this.masterVolume,
+    ambience: ambience ?? this.ambience,
+    voiceOn: voiceOn ?? this.voiceOn,
+    sfxOn: sfxOn ?? this.sfxOn,
+    leftHanded: leftHanded ?? this.leftHanded,
     vibrationOn: vibrationOn ?? this.vibrationOn,
     remindersOn: remindersOn ?? this.remindersOn,
     reduceMotion: reduceMotion ?? this.reduceMotion,
@@ -104,6 +128,11 @@ class SaveData {
     'bestScore': bestScore,
     'adsRemoved': adsRemoved,
     'soundOn': soundOn,
+    'masterVolume': masterVolume,
+    'ambience': ambience,
+    'voiceOn': voiceOn,
+    'sfxOn': sfxOn,
+    'leftHanded': leftHanded,
     'vibrationOn': vibrationOn,
     'remindersOn': remindersOn,
     'reduceMotion': reduceMotion,
@@ -126,6 +155,14 @@ class SaveData {
     bestScore: (j['bestScore'] as num?)?.toInt() ?? 0,
     adsRemoved: j['adsRemoved'] as bool? ?? false,
     soundOn: j['soundOn'] as bool? ?? true,
+    masterVolume: ((j['masterVolume'] as num?)?.toDouble() ?? 1.0).clamp(
+      0.0,
+      1.0,
+    ),
+    ambience: j['ambience'] as String? ?? 'night',
+    voiceOn: j['voiceOn'] as bool? ?? true,
+    sfxOn: j['sfxOn'] as bool? ?? true,
+    leftHanded: j['leftHanded'] as bool? ?? false,
     vibrationOn: j['vibrationOn'] as bool? ?? true,
     remindersOn: j['remindersOn'] as bool? ?? false,
     reduceMotion: j['reduceMotion'] as bool? ?? false,
