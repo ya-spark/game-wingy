@@ -122,6 +122,20 @@ void main() {
     expect(unlocked, isEmpty);
   });
 
+  test('palette start persists and advances at game over', () async {
+    final p = make();
+    await p.init();
+    expect(p.data.paletteStart, 0);
+    // Score 45 ends on the third palette (midnight); the next run starts after it.
+    await p.recordGameFinished(const GameSummary(score: 45));
+    expect(p.data.paletteStart, 3);
+    final again = make();
+    await again.init();
+    expect(again.data.paletteStart, 3);
+    await again.recordGameFinished(const GameSummary(score: 0));
+    expect(again.data.paletteStart, 4);
+  });
+
   test('remove-ads purchase sets the flag; restore is idempotent', () async {
     final p = make();
     await p.init();

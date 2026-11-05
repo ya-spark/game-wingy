@@ -143,10 +143,53 @@ void main() {
       expect(medalForScore(25), Medal.silver);
       expect(medalForScore(50), Medal.gold);
       expect(medalForScore(100), Medal.prism);
-      expect(paletteForScore(24), Palette.dusk);
-      expect(paletteForScore(25), Palette.aurora);
-      expect(paletteForScore(59), Palette.aurora);
-      expect(paletteForScore(60), Palette.midnight);
+    });
+
+    test('palettes rotate every 20 points and wrap around', () {
+      expect(paletteOrder, [
+        Palette.dusk,
+        Palette.aurora,
+        Palette.midnight,
+        Palette.sunrise,
+        Palette.emerald,
+        Palette.ember,
+      ]);
+      expect(paletteForScore(0), Palette.dusk);
+      expect(paletteForScore(19), Palette.dusk);
+      expect(paletteForScore(20), Palette.aurora);
+      expect(paletteForScore(100), Palette.ember);
+      expect(paletteForScore(120), Palette.dusk);
+      expect(paletteForScore(121), Palette.dusk);
+      expect(paletteForScore(20, start: 5), Palette.dusk);
+      expect(paletteForScore(0, start: 3), Palette.sunrise);
+      final run = WingyRun(random: Random(1), paletteStart: 4)..score = 20;
+      expect(run.palette, Palette.ember);
+    });
+
+    test('next start is the palette after the one at game over', () {
+      expect(nextPaletteStart(0, 0), 1);
+      expect(nextPaletteStart(0, 45), 3);
+      expect(nextPaletteStart(5, 20), 1);
+      expect(nextPaletteStart(2, 100), 2);
+    });
+
+    test('palette fade runs 1.5 s (0.3 s with reduce motion)', () {
+      final f = PaletteFade(Palette.dusk);
+      expect(f.running, isFalse);
+      f.setTarget(Palette.aurora);
+      expect(f.running, isTrue);
+      f.update(0.75);
+      expect(f.progress, closeTo(0.5, 1e-9));
+      f.update(0.74);
+      expect(f.running, isTrue);
+      f.update(0.02);
+      expect(f.running, isFalse);
+      expect(f.to, Palette.aurora);
+      f.setTarget(Palette.midnight, reduceMotion: true);
+      f.update(0.29);
+      expect(f.running, isTrue);
+      f.update(0.02);
+      expect(f.running, isFalse);
     });
 
     test('score coins are 1 per 5 points', () {

@@ -67,6 +67,7 @@ class WingyGame extends FlameGame {
     countdown = 0;
     _painter.texts.clear();
     _painter.bursts.clear();
+    _painter.resetFade();
     _notify(force: true);
   }
 

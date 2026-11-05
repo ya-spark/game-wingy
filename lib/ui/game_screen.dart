@@ -76,6 +76,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     random: _wingySeed >= 0 ? Random(_wingySeed) : null,
     bestScore: s.profile.data.bestScore,
     startMeter: meter,
+    paletteStart: s.profile.data.paletteStart,
   );
 
   WingyGame _ensureGame(Services s) {

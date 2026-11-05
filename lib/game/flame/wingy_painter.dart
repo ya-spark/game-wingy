@@ -49,9 +49,36 @@ class WingyPainter {
     Palette.dusk: [Color(0xFF1B1446), Color(0xFF2B4FB0), Color(0xFF2FA8C9)],
     Palette.aurora: [Color(0xFF0B2B3B), Color(0xFF1C6A6E), Color(0xFF3FBF9A)],
     Palette.midnight: [Color(0xFF05071A), Color(0xFF111A4A), Color(0xFF2B1B63)],
+    Palette.sunrise: [Color(0xFF3B1740), Color(0xFFB5517A), Color(0xFFF2A65A)],
+    Palette.emerald: [Color(0xFF06261F), Color(0xFF0F6B4F), Color(0xFF52D6A0)],
+    Palette.ember: [Color(0xFF2A0E12), Color(0xFF8A2B26), Color(0xFFF08A3C)],
   };
 
+  /// Top, middle and bottom colours of the background gradient of [p].
+  static List<Color> paletteColors(Palette p) => _palettes[p]!;
+
+  /// Cross-fade of the background gradient between palettes.
+  final PaletteFade fade = PaletteFade(Palette.dusk);
+  bool _fadeReady = false;
+
+  /// Forget the fade (new run): the next update snaps to the run's palette.
+  void resetFade() => _fadeReady = false;
+
+  /// Gradient colours currently shown (mid-fade blend).
+  List<Color> get gradientColors {
+    final a = _palettes[fade.from]!;
+    final b = _palettes[fade.to]!;
+    return [for (var i = 0; i < 3; i++) Color.lerp(a[i], b[i], fade.progress)!];
+  }
+
   void update(double dt, WingyRun run, List<RunEvent> events) {
+    if (!_fadeReady) {
+      fade.snapTo(run.palette);
+      _fadeReady = true;
+    } else {
+      fade.setTarget(run.palette, reduceMotion: reduceMotion);
+      fade.update(dt);
+    }
     time += dt;
     sinceFlap += dt;
     if (shake > 0) shake = max(0, shake - dt);
@@ -112,7 +139,7 @@ class WingyPainter {
     );
     final ox = (size.width - WingyWorld.width * s) / 2;
     final oy = (size.height - WingyWorld.height * s) / 2;
-    _background(canvas, size, run);
+    _background(canvas, size);
     canvas.save();
     var sx = 0.0;
     var sy = 0.0;
@@ -140,8 +167,8 @@ class WingyPainter {
     canvas.restore();
   }
 
-  void _background(Canvas canvas, Size size, WingyRun run) {
-    final c = _palettes[run.palette]!;
+  void _background(Canvas canvas, Size size) {
+    final c = gradientColors;
     final paint = Paint()
       ..shader = Gradient.linear(Offset.zero, Offset(0, size.height), c, const [
         0,
@@ -237,6 +264,20 @@ class WingyPainter {
       p.drifting,
     );
   }
+
+  /// One spire column, for scenes outside a run (home screen).
+  void drawSpire(
+    Canvas canvas,
+    double l,
+    double r,
+    double y0,
+    double y1, {
+    required bool hangs,
+    double alpha = 1,
+  }) => _spire(canvas, l, r, y0, y1, hangs, alpha, false);
+
+  /// One glow orb, for scenes outside a run (home screen).
+  void drawOrb(Canvas canvas, double x, double y) => _orb(canvas, x, y);
 
   void _spire(
     Canvas canvas,
@@ -334,13 +375,40 @@ class WingyPainter {
 
   void _moth(Canvas canvas, WingyRun run) {
     if (run.isInvulnerable && ((time * 14).floor() % 2 == 0)) return;
-    final x = WingyWorld.heroX;
-    final y = run.y;
     final tilt = (run.vy / WingyWorld.terminalVelocity * 0.9).clamp(-0.5, 0.9);
+    // Wing frame: 0 up, 1 mid, 2 down.
+    final frame = sinceFlap < 0.07
+        ? 0
+        : sinceFlap < 0.14
+        ? 1
+        : (run.vy > 100 ? 2 : 1);
+    drawMoth(
+      canvas,
+      WingyWorld.heroX,
+      run.y,
+      tilt: run.isDashing ? 0 : tilt.toDouble(),
+      frame: frame,
+      dashing: run.isDashing,
+      grace: run.isGrace,
+      ending: run.dashEnding,
+    );
+  }
+
+  /// The moth at ([x], [y]); [frame] is the wing frame (0 up, 1 mid, 2 down).
+  void drawMoth(
+    Canvas canvas,
+    double x,
+    double y, {
+    double tilt = 0,
+    int frame = 1,
+    bool dashing = false,
+    bool grace = false,
+    bool ending = false,
+  }) {
     canvas.save();
     canvas.translate(x, y);
-    canvas.rotate(run.isDashing ? 0 : tilt);
-    if (run.dashEnding) {
+    canvas.rotate(tilt);
+    if (ending) {
       // End-of-dash cue: pulsing scale and a brighter glow for the last 0.3 s.
       final pulse = 0.5 + 0.5 * sin(time * 40);
       canvas.scale(1 + 0.18 * pulse);
@@ -354,7 +422,7 @@ class WingyPainter {
           ]),
       );
     }
-    if (run.isDashing || run.isGrace) {
+    if (dashing || grace) {
       canvas.drawCircle(
         Offset.zero,
         34,
@@ -365,12 +433,6 @@ class WingyPainter {
           ]),
       );
     }
-    // Wing frame: 0 up, 1 mid, 2 down.
-    final frame = sinceFlap < 0.07
-        ? 0
-        : sinceFlap < 0.14
-        ? 1
-        : (run.vy > 100 ? 2 : 1);
     final lift = const [-18.0, -6.0, 12.0][frame];
     final wing = Paint()..color = const Color(0xCCEBD9FF);
     final wingEdge = Paint()

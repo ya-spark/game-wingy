@@ -79,13 +79,59 @@ abstract final class WingyWorld {
   static const double reviveInvulnerability = 2.0;
 }
 
-enum Palette { dusk, aurora, midnight }
+enum Palette { dusk, aurora, midnight, sunrise, emerald, ember }
 
-/// Cosmetic palette by score.
-Palette paletteForScore(int score) {
-  if (score >= 60) return Palette.midnight;
-  if (score >= 25) return Palette.aurora;
-  return Palette.dusk;
+/// Rotation order of the palettes.
+const List<Palette> paletteOrder = Palette.values;
+
+/// Points between two palette changes.
+const int paletteStep = 20;
+
+/// Palette for [score] in a run whose first palette is `paletteOrder[start]`.
+Palette paletteForScore(int score, {int start = 0}) {
+  final n = paletteOrder.length;
+  return paletteOrder[((start % n) + score ~/ paletteStep) % n];
+}
+
+/// The `start` index for the next run: the palette after the one in use at game over.
+int nextPaletteStart(int start, int score) =>
+    (paletteForScore(score, start: start).index + 1) % paletteOrder.length;
+
+/// Cross-fade between palettes (pure state, driven by the render loop).
+class PaletteFade {
+  PaletteFade(Palette initial) : from = initial, to = initial;
+
+  static const double duration = 1.5;
+  static const double reducedDuration = 0.3;
+
+  Palette from;
+  Palette to;
+
+  /// 0..1; 1 means [to] is fully shown.
+  double progress = 1;
+  double _length = duration;
+
+  bool get running => progress < 1;
+
+  /// Starts a fade towards [target] when it differs from the current target.
+  void setTarget(Palette target, {bool reduceMotion = false}) {
+    if (target == to) return;
+    from = progress >= 0.5 ? to : from;
+    to = target;
+    progress = 0;
+    _length = reduceMotion ? reducedDuration : duration;
+  }
+
+  /// Jumps to [target] with no fade (new run, first frame).
+  void snapTo(Palette target) {
+    from = to = target;
+    progress = 1;
+  }
+
+  void update(double dt) {
+    if (progress >= 1) return;
+    progress = (progress + dt / _length).clamp(0.0, 1.0);
+  }
 }
 
 enum Medal { none, bronze, silver, gold, prism }

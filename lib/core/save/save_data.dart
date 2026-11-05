@@ -18,6 +18,7 @@ class SaveData {
     this.vibrationOn = true,
     this.remindersOn = false,
     this.reduceMotion = false,
+    this.paletteStart = 0,
     this.dashRefills = 0,
     this.adRefillDay = -1,
     this.adRefillsToday = 0,
@@ -50,6 +51,9 @@ class SaveData {
   final bool vibrationOn;
   final bool remindersOn;
   final bool reduceMotion;
+
+  /// Index of the palette the next run starts with (0..5).
+  final int paletteStart;
 
   /// Dash Refill stock: each one starts a run with a full Glow Dash meter.
   final int dashRefills;
@@ -85,6 +89,7 @@ class SaveData {
     bool? vibrationOn,
     bool? remindersOn,
     bool? reduceMotion,
+    int? paletteStart,
     int? dashRefills,
     int? adRefillDay,
     int? adRefillsToday,
@@ -109,6 +114,7 @@ class SaveData {
     vibrationOn: vibrationOn ?? this.vibrationOn,
     remindersOn: remindersOn ?? this.remindersOn,
     reduceMotion: reduceMotion ?? this.reduceMotion,
+    paletteStart: paletteStart ?? this.paletteStart,
     dashRefills: dashRefills ?? this.dashRefills,
     adRefillDay: adRefillDay ?? this.adRefillDay,
     adRefillsToday: adRefillsToday ?? this.adRefillsToday,
@@ -136,6 +142,7 @@ class SaveData {
     'vibrationOn': vibrationOn,
     'remindersOn': remindersOn,
     'reduceMotion': reduceMotion,
+    'paletteStart': paletteStart,
     'dashRefills': dashRefills,
     'adRefillDay': adRefillDay,
     'adRefillsToday': adRefillsToday,
@@ -166,6 +173,7 @@ class SaveData {
     vibrationOn: j['vibrationOn'] as bool? ?? true,
     remindersOn: j['remindersOn'] as bool? ?? false,
     reduceMotion: j['reduceMotion'] as bool? ?? false,
+    paletteStart: ((j['paletteStart'] as num?)?.toInt() ?? 0).clamp(0, 5),
     dashRefills: (j['dashRefills'] as num?)?.toInt() ?? 0,
     adRefillDay: (j['adRefillDay'] as num?)?.toInt() ?? -1,
     adRefillsToday: (j['adRefillsToday'] as num?)?.toInt() ?? 0,

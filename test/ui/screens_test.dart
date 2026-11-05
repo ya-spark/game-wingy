@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wingy/app.dart';
 import 'package:wingy/core/retention/daily_reward.dart';
 import 'package:wingy/core/services.dart';
+import 'package:wingy/ui/home_hero.dart';
 import 'package:wingy/ui/test_ids.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,6 +40,36 @@ void main() {
       expect(find.byKey(k), findsOneWidget, reason: '$k');
     }
   });
+
+  testWidgets(
+    'home hero animates, pauses when covered, still on reduce motion',
+    (tester) async {
+      final s = await buildFakeServices();
+      await pumpApp(tester, s);
+      HomeHeroState hero() => tester.state<HomeHeroState>(
+        find.byType(HomeHero, skipOffstage: false),
+      );
+      expect(find.byKey(TestIds.homeHero), findsOneWidget);
+      expect(hero().running, isTrue);
+      await tester.tap(find.byKey(TestIds.homeSettings));
+      await tester.pumpAndSettle();
+      expect(hero().running, isFalse);
+      await tester.pageBack();
+      await settle(tester); // the hero never settles
+      expect(hero().running, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      expect(hero().running, isFalse);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(hero().running, isTrue);
+      await s.profile.setReduceMotion(true);
+      await tester.pumpWidget(GameApp(services: s));
+      await tester.pump();
+      expect(find.byKey(TestIds.homeHero), findsOneWidget);
+      expect(hero().running, isFalse);
+    },
+  );
 
   testWidgets('daily reward screen: claim adds coins and disables the button', (
     tester,

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../../game/rules/world.dart';
 import '../clock.dart';
 import '../config/app_config.dart';
 import '../config/products.dart';
@@ -177,6 +178,7 @@ class ProfileStore extends ChangeNotifier {
       stats: stats,
       coins: d.coins + g.coins,
       bestScore: g.score > d.bestScore ? g.score : null,
+      paletteStart: nextPaletteStart(d.paletteStart, g.score),
     );
     if (retention.dailyChallenges) {
       var c = DailyChallengeEngine.ensureToday(d.challenges, today);

@@ -167,7 +167,7 @@ abstract final class AchievementEngine {
     AchievementDef(
       'ach_night_owl',
       'Night Owl',
-      'Reach the midnight palette (score 60)',
+      'Score 60 in a run',
       AchievementMetric.bestScore,
       60,
       100,

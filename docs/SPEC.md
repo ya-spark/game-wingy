@@ -61,7 +61,18 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 
 ## 4. Content
 - **Hero:** Wingy, a round-bodied moth with two large soft wings and a glowing abdomen; wings flap on tap (3 frames drawn procedurally).
-- **World:** a twilight canyon. Parallax layers: far violet ridge, mid mist band, near silhouettes of floating rocks; stars that twinkle slowly. Spires are translucent crystal columns (cyan-to-magenta tint, one stylized facet highlight), with a flat glowing tip. Ground is dark mossy rock with tiny glowing mushrooms. Colors shift slowly through three palettes: dusk (0 to 24), aurora (25 to 59), midnight (60+). Palette change is cosmetic only.
+- **World:** a twilight canyon. Parallax layers: far violet ridge, mid mist band, near silhouettes of floating rocks; stars that twinkle slowly. Spires are translucent crystal columns (cyan-to-magenta tint, one stylized facet highlight), with a flat glowing tip. Ground is dark mossy rock with tiny glowing mushrooms. Six palettes rotate (cosmetic only), in this order, background gradient top / middle / bottom:
+
+  | # | Palette | Colours |
+  |---|---------|---------|
+  | 0 | dusk | `0xFF1B1446`, `0xFF2B4FB0`, `0xFF2FA8C9` |
+  | 1 | aurora | `0xFF0B2B3B`, `0xFF1C6A6E`, `0xFF3FBF9A` |
+  | 2 | midnight | `0xFF05071A`, `0xFF111A4A`, `0xFF2B1B63` |
+  | 3 | sunrise (rose-gold) | `0xFF3B1740`, `0xFFB5517A`, `0xFFF2A65A` |
+  | 4 | emerald (deep green glow) | `0xFF06261F`, `0xFF0F6B4F`, `0xFF52D6A0` |
+  | 5 | ember (red-orange dusk) | `0xFF2A0E12`, `0xFF8A2B26`, `0xFFF08A3C` |
+
+  The palette changes every 20 points: `palette = order[(start + score ~/ 20) % 6]`. `start` is the saved profile value `paletteStart` (0 on a fresh install). When a run ends, `start` becomes the index after the palette in use at game over (`nextPaletteStart`), so the next run begins with a new look. A palette change cross-fades the background gradient over 1.5 s (0.3 s with Reduce motion on); a new run snaps to its start palette with no fade (`PaletteFade` in `lib/game/rules/world.dart`).
 - **Difficulty curve:** speed 140 to 220 u/s, gap 210 to 150 u, drifting gaps from score 20. No level cap.
 - **Modes in v1:** one mode (Endless). 
 
@@ -77,7 +88,7 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
   6. Shatter N spire pairs with Dash in total today (2/4/6).
   7. Reach a Bloom bonus of +3 or more (once/twice).
   8. Play N runs (3/5).
-- **Achievements** (local; mirrored to Play Games when signed in): First Flight (score 1), Ten Gaps (score 10 in a run), Gold Wings (score 50 in a run), Prism Wings (score 100 in a run), Perfectionist (7 Perfect passes in a row), Orb Collector (50 orbs total), Dash Master (shatter 20 pairs with Dash total), Night Owl (reach midnight palette, score 60), Regular (50 runs total), Daily Devotee (7-day streak).
+- **Achievements** (local; mirrored to Play Games when signed in): First Flight (score 1), Ten Gaps (score 10 in a run), Gold Wings (score 50 in a run), Prism Wings (score 100 in a run), Perfectionist (7 Perfect passes in a row), Orb Collector (50 orbs total), Dash Master (shatter 20 pairs with Dash total), Night Owl (score 60 in a run; no longer tied to a palette), Regular (50 runs total), Daily Devotee (7-day streak).
 - Notifications (reminder for the daily reward) via `NotificationService`, opt-in, toggle in Settings.
 
 ## 6. Monetization
@@ -89,7 +100,7 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 - Test ad IDs only in debug and in the template; release IDs only from the `app.config.yaml` release block. Everything goes through `AdService` and `PurchaseService`; nothing new in vendor SDKs.
 
 ## 7. Screens (test IDs added to `lib/ui/test_ids.dart`)
-- **Home:** Play, Daily reward, Challenges, Shop, Settings, coins, best score, streak, banner. (Keep existing `home.*` IDs.)
+- **Home:** Play, Daily reward, Challenges, Shop, Settings, coins, best score, streak, banner. (Keep existing `home.*` IDs.) The page background is the gradient of the palette `order[paletteStart]`; other menu screens keep the plain gradient. Above the title is the animated hero scene `home.hero` (`lib/ui/home_hero.dart`), a 160 dp band drawn in code with the game's own `WingyPainter` (no assets): the moth flies left to right with a gentle flap and bob; crystal spires and glow orbs scroll right to left in three parallax layers; every 11 s a soft Glow Dash trail follows the moth for 1.4 s. One `CustomPainter`, one ticker, at most 12 moving objects (moth, trail, 6 spires, 3 orbs). The ticker stops while the home route is covered or the app is in the background; with Reduce motion on it shows one still frame. Decorative only: no gestures, excluded from semantics.
 - **Game** (portrait): score pill top center, best score small under it, Bloom streak chip beside the score when active, orb meter (three pips) top-left, Dash button bottom-right, pause top-right. Tap anywhere on the play field flaps. IDs: `game.widget`, `game.field` (tap target), `game.score`, `game.best`, `game.streak`, `game.meter` (Semantics value = pips 0..3), `game.dash`, `game.dash.state` (Semantics: off/ready/active), `game.pause`, `game.back`, `game.ready` (tap-to-start hint). Game over: `game.over.dialog`, `game.over.score`, `game.over.best`, `game.over.medal`, `game.over.revive`, `game.over.refill`, `game.over.retry`, `game.over.home`. Pause: `game.pause.resume`, `game.pause.quit`. Refill: `game.refill.coins`, `game.refill.ad`.
 - **Daily reward, Challenges/Achievements, Shop, Settings:** existing IDs kept. Settings adds `settings.haptics`, `settings.reduceMotion` (disables screen shake and parallax).
 - **Input:** a tap anywhere on `game.field` (or the on-screen center of it) flaps. Dash is the only other control. Taps on the pause button and Dash button never flap. Pausing or app background pauses the run and the first tap after resume is swallowed with a 3-2-1 countdown.
@@ -117,7 +128,7 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 - Privacy: AdMob (ad ID), Play Billing; no account, no backend. Data safety form to match.
 
 ## 11. Out of scope (v1)
-Multiplayer, online battles, Firebase or any backend, accounts, particle systems, multiple characters or skins shop, themed worlds beyond the three cosmetic palettes, extra modes (daily seed run, zen), iOS/web builds (kept possible via pure-Dart rules), cloud save beyond Play Games.
+Multiplayer, online battles, Firebase or any backend, accounts, particle systems, multiple characters or skins shop, themed worlds beyond the six cosmetic palettes, extra modes (daily seed run, zen), iOS/web builds (kept possible via pure-Dart rules), cloud save beyond Play Games.
 
 ## 12. Acceptance criteria (testable)
 Rules (VM unit tests, `test/rules/`, fixed-step simulation with seeded Random):

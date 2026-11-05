@@ -31,9 +31,13 @@ class RunEvent {
 /// One run of Wingy. Pure Dart, deterministic: randomness comes from the injected [Random],
 /// time only from [advance] deltas (fixed internal step of 1/120 s).
 class WingyRun {
-  WingyRun({Random? random, this.bestScore = 0, int startMeter = 0})
-    : _generator = GapGenerator(random ?? Random()),
-      meter = startMeter.clamp(0, WingyWorld.meterMax) {
+  WingyRun({
+    Random? random,
+    this.bestScore = 0,
+    int startMeter = 0,
+    this.paletteStart = 0,
+  }) : _generator = GapGenerator(random ?? Random()),
+       meter = startMeter.clamp(0, WingyWorld.meterMax) {
     _spawnPairs();
   }
 
@@ -53,6 +57,9 @@ class WingyRun {
 
   int score = 0;
   int bestScore;
+
+  /// Index into [paletteOrder] of the palette this run begins with.
+  final int paletteStart;
   int pairsPassed = 0;
   int perfectStreak = 0;
   int maxStreak = 0;
@@ -103,7 +110,7 @@ class WingyRun {
   int get scoreCoins => score ~/ 5;
 
   Medal get medal => medalForScore(score);
-  Palette get palette => paletteForScore(score);
+  Palette get palette => paletteForScore(score, start: paletteStart);
 
   double get scrollSpeed => min(
     WingyWorld.maxSpeed,
