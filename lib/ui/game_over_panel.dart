@@ -8,6 +8,7 @@ class GameOverPanel extends StatelessWidget {
     required this.title,
     required this.details,
     required this.buttons,
+    this.lead,
   });
 
   final String title;
@@ -15,6 +16,9 @@ class GameOverPanel extends StatelessWidget {
   /// Score, best, medal... shown under the title.
   final List<Widget> details;
   final List<GameOverButton> buttons;
+
+  /// Optional main action, shown alone on its own row above [buttons].
+  final GameOverButton? lead;
 
   /// White text with a dark outline: readable over any background without a panel.
   static List<Shadow> get outline => const [
@@ -69,6 +73,7 @@ class GameOverPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
+                if (lead != null) ...[lead!, const SizedBox(height: 10)],
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 10,
@@ -86,6 +91,10 @@ class GameOverPanel extends StatelessWidget {
 
 enum GameOverButtonKind { primary, secondary, ghost }
 
+/// [large]: font 22, padding 28x16 (the focus action). [normal]: font 16, padding 20x11.
+/// [small]: font 15, padding 18x9 (secondary actions).
+enum GameOverButtonSize { large, normal, small }
+
 /// Glossy pill button: gold for the main action, purple-pink for secondary, glass for ghost.
 class GameOverButton extends StatelessWidget {
   const GameOverButton({
@@ -94,12 +103,14 @@ class GameOverButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.kind = GameOverButtonKind.secondary,
+    this.size = GameOverButtonSize.normal,
   });
 
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
   final GameOverButtonKind kind;
+  final GameOverButtonSize size;
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +130,11 @@ class GameOverButton extends StatelessWidget {
         Colors.white,
         const Color(0xCCFFFFFF),
       ),
+    };
+    final (fontSize, padH, padV) = switch (size) {
+      GameOverButtonSize.large => (22.0, 28.0, 16.0),
+      GameOverButtonSize.normal => (16.0, 20.0, 11.0),
+      GameOverButtonSize.small => (15.0, 18.0, 9.0),
     };
     final enabled = onPressed != null;
     return Opacity(
@@ -146,7 +162,7 @@ class GameOverButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(28),
             onTap: onPressed,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+              padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -154,16 +170,21 @@ class GameOverButton extends StatelessWidget {
                     Icon(icon, size: 20, color: fg),
                     const SizedBox(width: 6),
                   ],
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: fg,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                      shadows: kind == GameOverButtonKind.ghost
-                          ? GameOverPanel.outline
-                          : null,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: fg,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                          shadows: kind == GameOverButtonKind.ghost
+                              ? GameOverPanel.outline
+                              : null,
+                        ),
+                      ),
                     ),
                   ),
                 ],

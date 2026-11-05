@@ -14,6 +14,9 @@ import '../game/rules/world.dart';
 import 'game_over_panel.dart';
 import 'test_ids.dart';
 
+/// Player-facing label of the game over continue action (rewarded ad). Rename it here only.
+const String continueLabel = 'Continue';
+
 const int _wingySeed = int.fromEnvironment('WINGY_SEED', defaultValue: -1);
 
 class GameScreen extends StatefulWidget {
@@ -232,6 +235,17 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _dialogOpen = true;
     final game = _game!;
     final run = game.run;
+    GameOverButton retryButton(BuildContext ctx, {required bool large}) =>
+        GameOverButton(
+          key: TestIds.gameOverRetry,
+          kind: large
+              ? GameOverButtonKind.primary
+              : GameOverButtonKind.secondary,
+          size: large ? GameOverButtonSize.large : GameOverButtonSize.small,
+          icon: Icons.replay,
+          label: 'Play again',
+          onPressed: () => Navigator.pop(ctx, 'retry'),
+        );
     final action = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -249,17 +263,20 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             Text('Best ${run.bestScore}', key: TestIds.gameOverBest),
             Text(_medalName(run.medal), key: TestIds.gameOverMedal),
           ],
+          lead: run.canRevive
+              ? GameOverButton(
+                  key: TestIds.gameOverRevive,
+                  kind: GameOverButtonKind.primary,
+                  size: GameOverButtonSize.large,
+                  icon: Icons.smart_display,
+                  label: '$continueLabel · ${run.revivesLeft} left',
+                  onPressed: () => Navigator.pop(ctx, 'revive'),
+                )
+              : retryButton(ctx, large: true),
           buttons: [
-            if (run.canRevive)
-              GameOverButton(
-                key: TestIds.gameOverRevive,
-                kind: GameOverButtonKind.primary,
-                icon: Icons.smart_display,
-                label: 'Revive · ${run.revivesLeft} left',
-                onPressed: () => Navigator.pop(ctx, 'revive'),
-              ),
             GameOverButton(
               key: TestIds.gameOverRefill,
+              size: GameOverButtonSize.small,
               icon: Icons.bolt,
               label: _refillArmed
                   ? 'Dash ready'
@@ -278,15 +295,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       if (got == true) setDialog(() => _refillArmed = true);
                     },
             ),
-            GameOverButton(
-              key: TestIds.gameOverRetry,
-              kind: run.canRevive
-                  ? GameOverButtonKind.secondary
-                  : GameOverButtonKind.primary,
-              icon: Icons.replay,
-              label: 'Play again',
-              onPressed: () => Navigator.pop(ctx, 'retry'),
-            ),
+            if (run.canRevive) retryButton(ctx, large: false),
             GameOverButton(
               key: TestIds.gameOverHome,
               kind: GameOverButtonKind.ghost,

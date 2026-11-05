@@ -55,7 +55,9 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 
 **Run states.** `ready` (waiting for first tap; Wingy hovers), `playing`, `dead`. First tap flaps and starts the run. On death the run ends after a short 0.6 s fall/shake; then the game over dialog.
 
-**Revive.** Up to three times per run, each via a rewarded ad (section 6): Wingy returns to the vertical center of the nearest upcoming gap, all spires within 300 u ahead are removed, 2.0 s of invulnerability with flicker; score, streak and meter are unchanged. After the third revive, the next death shows no revive.
+**Revive (player-facing name: Continue).** Up to three times per run, each via a rewarded ad (section 6): Wingy returns to the vertical center of the nearest upcoming gap, all spires within 300 u ahead are removed, 2.0 s of invulnerability with flicker; score, streak and meter are unchanged. After the third revive, the next death shows no Continue button.
+
+**Game over layout.** Row 1: `Continue · N left` (`game.over.revive`), gold primary, font 22, padding 28x16, alone on its row; hidden when no continue is left. Row 2: Dash Refill (`game.over.refill`) and Play again (`game.over.retry`), secondary, font 15, padding 18x9, plus Home (`game.over.home`), small ghost. When Continue is unavailable, Play again takes the large gold style (font 22, padding 28x16) on row 1. The label is the constant `continueLabel` in `lib/ui/game_screen.dart`. Test IDs are unchanged.
 
 ## 4. Content
 - **Hero:** Wingy, a round-bodied moth with two large soft wings and a glowing abdomen; wings flap on tap (3 frames drawn procedurally).

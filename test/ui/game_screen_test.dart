@@ -192,6 +192,30 @@ void main() {
     expect(find.byKey(TestIds.gameOverRevive), findsNothing);
   });
 
+  testWidgets('game over: Continue is the large button, Play again takes over '
+      'when no continue is left', (tester) async {
+    final s = await buildFakeServices(ads: FakeAdService());
+    final g = await pumpGame(tester, s);
+    await tester.tap(find.byKey(TestIds.gameReady));
+    await killHero(tester, g);
+    expect(find.text('Continue · 3 left'), findsOneWidget);
+    expect(find.byKey(TestIds.gameOverHome), findsOneWidget);
+    final cont = tester.getSize(find.byKey(TestIds.gameOverRevive));
+    final again = tester.getSize(find.byKey(TestIds.gameOverRetry));
+    expect(cont.height, greaterThan(again.height));
+    expect(cont.width, greaterThan(again.width));
+
+    for (var i = 0; i < WingyWorld.maxRevives; i++) {
+      await tester.tap(find.byKey(TestIds.gameOverRevive));
+      await frames(tester, 12);
+      await killHero(tester, g);
+    }
+    expect(find.byKey(TestIds.gameOverRevive), findsNothing);
+    expect(find.byKey(TestIds.gameOverHome), findsOneWidget);
+    final large = tester.getSize(find.byKey(TestIds.gameOverRetry));
+    expect(large.height, greaterThan(again.height));
+  });
+
   testWidgets('declined revive ad keeps the dialog; retry records the run', (
     tester,
   ) async {
