@@ -99,14 +99,17 @@ enum GameOverButtonSize { large, normal, small }
 class GameOverButton extends StatelessWidget {
   const GameOverButton({
     super.key,
-    required this.label,
+    this.label,
     required this.onPressed,
     this.icon,
+    this.semanticLabel,
     this.kind = GameOverButtonKind.secondary,
     this.size = GameOverButtonSize.normal,
-  });
+  }) : assert(label != null || icon != null);
 
-  final String label;
+  /// Null for an icon-only button (then [semanticLabel] names it).
+  final String? label;
+  final String? semanticLabel;
   final IconData? icon;
   final VoidCallback? onPressed;
   final GameOverButtonKind kind;
@@ -137,57 +140,61 @@ class GameOverButton extends StatelessWidget {
       GameOverButtonSize.small => (15.0, 18.0, 9.0),
     };
     final enabled = onPressed != null;
-    return Opacity(
-      opacity: enabled ? 1 : 0.55,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: colors,
-          ),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: border, width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x73000000),
-              blurRadius: 8,
-              offset: Offset(0, 4),
+    return Semantics(
+      label: semanticLabel,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.55,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: colors,
             ),
-          ],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
             borderRadius: BorderRadius.circular(28),
-            onTap: onPressed,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 20, color: fg),
-                    const SizedBox(width: 6),
-                  ],
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                          shadows: kind == GameOverButtonKind.ghost
-                              ? GameOverPanel.outline
-                              : null,
+            border: Border.all(color: border, width: 2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x73000000),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap: onPressed,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, size: 20, color: fg),
+                      if (label != null) const SizedBox(width: 6),
+                    ],
+                    if (label != null)
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            label!,
+                            style: TextStyle(
+                              color: fg,
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              shadows: kind == GameOverButtonKind.ghost
+                                  ? GameOverPanel.outline
+                                  : null,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

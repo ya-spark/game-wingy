@@ -14,6 +14,7 @@ Basis: SDKs in `pubspec.yaml` are `google_mobile_ads` (AdMob + UMP consent), `in
 | Purchases | Handled by Google Play Billing; no payment info collected by the app, so no financial data type is declared |
 | Play Games sign-in / player ID | Not collected in v1 (stub, disabled). Update this form if sign-in is enabled |
 | Notifications | Local only, no data leaves the device |
+| Sharing | Optional. The player starts it and picks the target app in the Android share sheet (`share_plus`); the app sends nothing itself and collects nothing. The share picture holds only the game name and scores, no name or id |
 | Data processed ephemerally? | No |
 
 ## Other Play Console declarations

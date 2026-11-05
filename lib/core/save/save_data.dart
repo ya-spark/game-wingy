@@ -19,6 +19,9 @@ class SaveData {
     this.remindersOn = false,
     this.reduceMotion = false,
     this.paletteStart = 0,
+    this.tipsOff = false,
+    this.tipHomeDay = -1,
+    this.seenHints = const {},
     this.dashRefills = 0,
     this.adRefillDay = -1,
     this.adRefillsToday = 0,
@@ -55,6 +58,15 @@ class SaveData {
   /// Index of the palette the next run starts with (0..5).
   final int paletteStart;
 
+  /// Tips are turned off ("Don't show tips again" ticked, or the settings switch is off).
+  final bool tipsOff;
+
+  /// Day index on which the home tip of the day was closed.
+  final int tipHomeDay;
+
+  /// One-time hints already shown.
+  final Set<String> seenHints;
+
   /// Dash Refill stock: each one starts a run with a full Glow Dash meter.
   final int dashRefills;
 
@@ -90,6 +102,9 @@ class SaveData {
     bool? remindersOn,
     bool? reduceMotion,
     int? paletteStart,
+    bool? tipsOff,
+    int? tipHomeDay,
+    Set<String>? seenHints,
     int? dashRefills,
     int? adRefillDay,
     int? adRefillsToday,
@@ -115,6 +130,9 @@ class SaveData {
     remindersOn: remindersOn ?? this.remindersOn,
     reduceMotion: reduceMotion ?? this.reduceMotion,
     paletteStart: paletteStart ?? this.paletteStart,
+    tipsOff: tipsOff ?? this.tipsOff,
+    tipHomeDay: tipHomeDay ?? this.tipHomeDay,
+    seenHints: seenHints ?? this.seenHints,
     dashRefills: dashRefills ?? this.dashRefills,
     adRefillDay: adRefillDay ?? this.adRefillDay,
     adRefillsToday: adRefillsToday ?? this.adRefillsToday,
@@ -143,6 +161,9 @@ class SaveData {
     'remindersOn': remindersOn,
     'reduceMotion': reduceMotion,
     'paletteStart': paletteStart,
+    'tipsOff': tipsOff,
+    'tipHomeDay': tipHomeDay,
+    'seenHints': seenHints.toList()..sort(),
     'dashRefills': dashRefills,
     'adRefillDay': adRefillDay,
     'adRefillsToday': adRefillsToday,
@@ -174,6 +195,9 @@ class SaveData {
     remindersOn: j['remindersOn'] as bool? ?? false,
     reduceMotion: j['reduceMotion'] as bool? ?? false,
     paletteStart: ((j['paletteStart'] as num?)?.toInt() ?? 0).clamp(0, 5),
+    tipsOff: j['tipsOff'] as bool? ?? false,
+    tipHomeDay: (j['tipHomeDay'] as num?)?.toInt() ?? -1,
+    seenHints: {...?(j['seenHints'] as List?)?.cast<String>()},
     dashRefills: (j['dashRefills'] as num?)?.toInt() ?? 0,
     adRefillDay: (j['adRefillDay'] as num?)?.toInt() ?? -1,
     adRefillsToday: (j['adRefillsToday'] as num?)?.toInt() ?? 0,

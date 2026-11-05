@@ -38,6 +38,7 @@ abstract final class TestIds {
   static const gameOverRefill = Key('game.over.refill');
   static const gameOverRetry = Key('game.over.retry');
   static const gameOverHome = Key('game.over.home');
+  static const gameOverShare = Key('game.over.share');
 
   // Pause dialog
   static const gamePauseResume = Key('game.pause.resume');
@@ -57,6 +58,7 @@ abstract final class TestIds {
   static Key challengeClaim(String id) => Key('challenge.claim.$id');
   static Key challengeTile(int i) => Key('challenge.tile.$i');
   static Key achievementTile(String id) => Key('achievement.$id');
+  static Key achievementShare(String id) => Key('achievement.share.$id');
 
   // Shop
   static const shopRestore = Key('shop.restore');
@@ -77,4 +79,14 @@ abstract final class TestIds {
   static const settingsReminders = Key('settings.reminders');
   static const settingsPrivacy = Key('settings.privacy');
   static const settingsPlayGames = Key('settings.playGames');
+  static const settingsTips = Key('settings.tips');
+  static const settingsShareApp = Key('settings.shareApp');
+
+  // Tips
+  static const tipGameOver = Key('tip.gameover');
+  static const tipPause = Key('tip.pause');
+  static const tipHome = Key('tip.home');
+  static const tipHint = Key('tip.hint');
+  static const tipClose = Key('tip.close');
+  static const tipDontShow = Key('tip.dontShow');
 }

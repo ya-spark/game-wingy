@@ -12,6 +12,8 @@ Wingy is a one-tap flyer game. It has no account system and no server of its own
 
 **Notifications:** If you turn on the daily reward reminder, the app schedules a local notification on your device. No data is sent anywhere for this. You can turn it off in Settings or in Android notification settings.
 
+**Sharing:** If you tap a Share button, Android opens its share sheet with a short text and a picture of your score (game name, score, best score, medal). You choose the app that receives it. Wingy itself sends nothing, and the picture contains no name or ID.
+
 **Google Play Games:** This version does not sign you in to Google Play Games and does not collect a player ID. If a later version adds Play Games sign-in (leaderboard, achievements), your player ID and scores will be handled by Google under Google's privacy policy, and this policy will be updated.
 
 **Analytics and servers:** The app contains no analytics or crash-reporting SDK and does not use Firebase. We do not operate a backend and do not collect, sell or share personal data ourselves.

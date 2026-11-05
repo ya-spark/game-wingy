@@ -57,3 +57,8 @@ play_games:
   enabled: false
   app_id: PLACEHOLDER_PLAY_GAMES_APP_ID
   leaderboard_high_score: PLACEHOLDER_LEADERBOARD_ID
+
+# Sharing through the system share sheet. The store link is added to share texts and "Share app"
+# is shown only when this is true; the owner turns it on once the game is live.
+share:
+  app_link_enabled: false
