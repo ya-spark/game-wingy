@@ -214,8 +214,8 @@ void main() {
     expect(find.byKey(TestIds.gameOverRevive), findsNothing);
   });
 
-  testWidgets('game over: Continue is the large button, Play again takes over '
-      'when no continue is left', (tester) async {
+  testWidgets('game over: Continue is the large button and goes away when no '
+      'continue is left', (tester) async {
     final s = await buildFakeServices(ads: FakeAdService());
     final g = await pumpGame(tester, s);
     await tester.tap(find.byKey(TestIds.gameReady));
@@ -235,7 +235,12 @@ void main() {
     expect(find.byKey(TestIds.gameOverRevive), findsNothing);
     expect(find.byKey(TestIds.gameOverHome), findsOneWidget);
     final large = tester.getSize(find.byKey(TestIds.gameOverRetry));
-    expect(large.height, greaterThan(again.height));
+    // Play again stays in the row next to Home, at the same size.
+    expect(large.height, again.height);
+    expect(
+      tester.getCenter(find.byKey(TestIds.gameOverRetry)).dy,
+      closeTo(tester.getCenter(find.byKey(TestIds.gameOverHome)).dy, 1),
+    );
   });
 
   testWidgets('declined revive ad keeps the dialog; retry records the run', (

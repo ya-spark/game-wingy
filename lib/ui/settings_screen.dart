@@ -144,13 +144,13 @@ class SettingsScreen extends StatelessWidget {
                   onChanged: p.setTipsEnabled,
                 ),
               ),
-              if (s.config.share.appLinkEnabled)
+              if (s.share.hasLink)
                 KidPanel(
                   child: ListTile(
                     key: TestIds.settingsShareApp,
                     leading: const Icon(Icons.share),
                     title: const Text('Share app'),
-                    onTap: s.share.shareApp,
+                    onTap: () => s.share.shareApp(bestScore: p.data.bestScore),
                   ),
                 ),
               if (s.ads.privacyOptionsRequired)

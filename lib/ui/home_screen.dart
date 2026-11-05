@@ -6,7 +6,7 @@ import '../game/rules/world.dart';
 import 'home_hero.dart';
 import 'routes.dart';
 import 'test_ids.dart';
-import 'tip_card.dart';
+import 'tip_dialog.dart';
 import 'widgets.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,6 +21,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowTip());
+  }
+
+  /// Opens the tip dialog once per day, when the home page is shown and nothing else is on top.
+  Future<void> _maybeShowTip() async {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    final s = ServicesScope.of(context);
+    if (!s.profile.homeTipPending) return;
+    final text = s.tips.tipOfTheDay(s.profile.today);
+    await s.profile.markHomeTipShown();
+    if (!mounted) return;
+    await showTipDialog(context, text: text);
   }
 
   @override
@@ -33,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ServicesScope.of(context).profile.onAppOpened();
+      _maybeShowTip();
     }
   }
 
@@ -118,13 +131,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     ),
                                 ],
                               ),
-                              if (profile.homeTipPending)
-                                TipCard(
-                                  key: TestIds.tipHome,
-                                  title: 'Tip of the day',
-                                  text: s.tips.tipOfTheDay(profile.today),
-                                  onClose: profile.closeHomeTip,
-                                ),
                               const SizedBox(height: 8),
                               MenuButton(
                                 key: TestIds.homePlay,

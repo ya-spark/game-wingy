@@ -73,11 +73,27 @@ class RetentionConfig {
   final bool achievements;
 }
 
-class ShareConfig {
-  const ShareConfig({this.appLinkEnabled = false});
+/// Which link the share texts carry. `internal_test` until the game is public, then `store`.
+enum ShareLinkMode {
+  internalTest,
+  store,
+  off;
 
-  /// Append the Play Store link to share texts and show "Share app". Off until the game is live.
-  final bool appLinkEnabled;
+  static ShareLinkMode parse(Object? v) => switch (v) {
+    'store' => ShareLinkMode.store,
+    'off' => ShareLinkMode.off,
+    _ => ShareLinkMode.internalTest,
+  };
+}
+
+class ShareConfig {
+  const ShareConfig({
+    this.linkMode = ShareLinkMode.internalTest,
+    this.internalTestUrl = '',
+  });
+
+  final ShareLinkMode linkMode;
+  final String internalTestUrl;
 }
 
 class PlatformsConfig {
@@ -138,6 +154,17 @@ class AppConfig {
   String get storeLink =>
       'https://play.google.com/store/apps/details?id=$packageName';
 
+  /// The link added to share texts, or null when sharing carries no link (mode `off`, or
+  /// mode `internal_test` with an empty URL). "Share app" is hidden when this is null.
+  String? get shareLink {
+    final url = share.internalTestUrl.trim();
+    return switch (share.linkMode) {
+      ShareLinkMode.store => storeLink,
+      ShareLinkMode.internalTest => url.isEmpty ? null : url,
+      ShareLinkMode.off => null,
+    };
+  }
+
   /// IDs to use for the current build mode. Debug always yields test IDs.
   AdmobIds admobFor({required bool release}) {
     if (release) return admobRelease;
@@ -195,7 +222,8 @@ class AppConfig {
         achievements: ret['achievements'] as bool? ?? true,
       ),
       share: ShareConfig(
-        appLinkEnabled: share['app_link_enabled'] as bool? ?? false,
+        linkMode: ShareLinkMode.parse(share['link_mode']),
+        internalTestUrl: share['internal_test_url'] as String? ?? '',
       ),
       playGames: PlayGamesConfig(
         enabled: pg['enabled'] as bool? ?? false,

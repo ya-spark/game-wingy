@@ -21,6 +21,8 @@ Future<void> pumpApp(WidgetTester tester, Services s) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(GameApp(services: s));
   await tester.pump();
+  // The tip dialog opens after the first frame.
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 Future<void> frames(WidgetTester tester, [int n = 6, int ms = 50]) async {
@@ -85,11 +87,32 @@ void main() {
     expect(bytes.sublist(0, 4), [0x89, 0x50, 0x4E, 0x47]);
   });
 
-  testWidgets('settings.shareApp is hidden while the link flag is off', (
+  testWidgets('settings.shareApp is visible with the default link mode and '
+      'shares the high score message and link', (tester) async {
+    final s = await buildFakeServices();
+    final share = s.share as FakeShareService;
+    expect(share.hasLink, isTrue);
+    await pumpApp(tester, s);
+    await tester.tap(find.byKey(TestIds.homeSettings));
+    await tester.pumpAndSettle();
+    final tile = find.byKey(TestIds.settingsShareApp, skipOffstage: false);
+    expect(tile, findsOneWidget);
+    tester.view.physicalSize = const Size(
+      400,
+      2000,
+    ); // the whole list on screen
+    await tester.pump();
+    await tester.tap(tile);
+    await tester.pump();
+    expect(share.sent, hasLength(1));
+    expect(share.sent.single.text, startsWith('Try Wingy!\n')); // no best yet
+    expect(share.sent.single.text, endsWith(s.config.shareLink!));
+  });
+
+  testWidgets('settings.shareApp is hidden when there is no link', (
     tester,
   ) async {
-    final s = await buildFakeServices();
-    expect(s.config.share.appLinkEnabled, isFalse);
+    final s = await buildFakeServices(share: FakeShareService());
     await pumpApp(tester, s);
     await tester.tap(find.byKey(TestIds.homeSettings));
     await tester.pumpAndSettle();
@@ -121,27 +144,50 @@ void main() {
       }
     });
     expect(share.sent, hasLength(1));
-    expect(share.sent.single.text, startsWith('I scored '));
+    expect(
+      share.sent.single.text,
+      startsWith('This is my high score in Wingy: '),
+    );
   });
 
-  testWidgets('home tip shows once per day and closing keeps it hidden', (
+  testWidgets('home tip dialog opens once per day and not again the same day', (
     tester,
   ) async {
     var now = DateTime.utc(2026, 11, 5, 10);
     final s = await buildFakeServices(clock: () => now, tips: true);
     await pumpApp(tester, s);
     expect(find.byKey(TestIds.tipHome), findsOneWidget);
+    expect(find.byKey(TestIds.tipDontShow), findsOneWidget);
     await tester.tap(find.byKey(TestIds.tipClose));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(TestIds.tipHome), findsNothing);
     expect(s.profile.tipsEnabled, isTrue);
+    // Same day: opening the app again shows nothing.
     await s.profile.onAppOpened();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(TestIds.tipHome), findsNothing);
+    expect(s.profile.homeTipPending, isFalse);
+    // Next day it is pending again.
     now = DateTime.utc(2026, 11, 6, 10);
-    await s.profile.onAppOpened();
+    expect(s.profile.homeTipPending, isTrue);
+  });
+
+  testWidgets('the home page has no tip card in its layout', (tester) async {
+    final s = await buildFakeServices(tips: true);
+    await pumpApp(tester, s);
+    await tester.tap(find.byKey(TestIds.tipClose));
     await tester.pump();
-    expect(find.byKey(TestIds.tipHome), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Tip of the day'), findsNothing);
+    expect(find.byKey(TestIds.homePlay), findsOneWidget);
+  });
+
+  testWidgets('no tip dialog when tips are off', (tester) async {
+    final s = await buildFakeServices(); // tips off
+    await pumpApp(tester, s);
+    expect(find.byKey(TestIds.tipHome), findsNothing);
+    expect(s.profile.homeTipPending, isFalse);
   });
 
   testWidgets('ticking the checkbox turns tips off; the settings switch '
@@ -152,9 +198,9 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(TestIds.tipClose));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(s.profile.tipsEnabled, isFalse);
     expect(find.byKey(TestIds.tipHome), findsNothing);
-    expect(s.profile.hintDue('perfect'), isFalse);
     expect(s.profile.homeTipPending, isFalse);
 
     await tester.tap(find.byKey(TestIds.homeSettings));
@@ -164,66 +210,84 @@ void main() {
     await tester.tap(sw);
     await tester.pump();
     expect(s.profile.tipsEnabled, isTrue);
-    expect(s.profile.hintDue('perfect'), isTrue);
-    // The home tip was closed today, so it stays away until tomorrow.
+    // The dialog was already shown today, so it stays away until tomorrow.
     expect(s.profile.homeTipPending, isFalse);
   });
 
-  testWidgets('game over tip shows on every 2nd game over', (tester) async {
+  testWidgets('no tip in the game: not at game over, not in the pause dialog', (
+    tester,
+  ) async {
     final s = await buildFakeServices(tips: true);
     final game = await pumpGame(tester, s);
-    await tester.tap(find.byKey(TestIds.gameReady));
-    await killHero(tester, game);
-    expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
-    expect(find.byKey(TestIds.tipGameOver), findsNothing);
-
-    await tester.tap(find.byKey(TestIds.gameOverRetry));
-    await frames(tester, 4);
-    await tester.tap(find.byKey(TestIds.gameReady));
-    await killHero(tester, game);
-    expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
-    expect(find.byKey(TestIds.tipGameOver), findsOneWidget);
-
-    await tester.tap(find.byKey(TestIds.tipClose));
-    await tester.pump();
-    expect(find.byKey(TestIds.tipGameOver), findsNothing);
-    expect(s.profile.tipsEnabled, isTrue);
-  });
-
-  testWidgets('pause tip needs 3 s of pause', (tester) async {
-    final s = await buildFakeServices(tips: true);
-    await pumpGame(tester, s);
     await tester.tap(find.byKey(TestIds.gamePause));
     await tester.pump();
+    await tester.pump(const Duration(seconds: 4));
     expect(find.byKey(TestIds.gamePauseResume), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 2900));
-    expect(find.byKey(TestIds.tipPause), findsNothing);
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byKey(TestIds.tipPause), findsOneWidget);
+    expect(find.byKey(TestIds.tipHome), findsNothing);
+    expect(find.byKey(TestIds.tipClose), findsNothing);
+    await tester.tap(find.byKey(TestIds.gamePauseResume));
+    await frames(tester, 80); // past the resume countdown
+
+    await tester.tap(find.byKey(TestIds.gameReady), warnIfMissed: false);
+    await killHero(tester, game);
+    expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
+    expect(find.byKey(TestIds.tipClose), findsNothing);
   });
 
-  testWidgets('one-time hint shows once, for 4 s', (tester) async {
-    final s = await buildFakeServices(tips: true);
+  testWidgets('game over: panel layout and the eye button', (tester) async {
+    final s = await buildFakeServices();
+    await s.profile.setSound(false);
     final game = await pumpGame(tester, s);
-    expect(find.byKey(TestIds.tipHint), findsNothing);
-    game.run.meter = WingyWorld.meterMax;
-    game.run.phase = RunPhase.playing;
-    game.run.y = 300;
-    game.run.vy = 0;
-    await frames(tester, 3);
-    expect(find.byKey(TestIds.tipHint), findsOneWidget);
-    expect(s.profile.hintDue('glow_dash'), isFalse);
-    await tester.pump(const Duration(seconds: 4));
+    await tester.tap(find.byKey(TestIds.gameReady));
+    await killHero(tester, game);
+
+    final panel = find.byKey(TestIds.gameOverPanel);
+    expect(panel, findsOneWidget);
+    final rect = tester.getRect(panel);
+    final share = tester.getRect(find.byKey(TestIds.gameOverShare));
+    final score = tester.getRect(find.byKey(TestIds.gameOverScore));
+    final again = tester.getRect(find.byKey(TestIds.gameOverRetry));
+    final home = tester.getRect(find.byKey(TestIds.gameOverHome));
+    final refill = tester.getRect(find.byKey(TestIds.gameOverRefill));
+    final cont = tester.getRect(find.byKey(TestIds.gameOverRevive));
+    // Share at the top left, above the score.
+    expect(share.left, lessThan(rect.left + 40));
+    expect(share.bottom, lessThan(score.top));
+    // Play again and Home side by side, below the score.
+    expect(again.top, greaterThan(score.bottom));
+    expect(again.center.dy, closeTo(home.center.dy, 1));
+    expect(again.right, lessThan(home.left));
+    // Refill just above Continue, Continue last and the largest.
+    expect(refill.bottom, lessThanOrEqualTo(cont.top));
+    expect(refill.top, greaterThan(again.bottom));
+    expect(cont.height, greaterThan(again.height));
+    expect(cont.bottom, lessThan(rect.bottom));
+
+    // The eye hides the panel (fade 0.2 s); the eye stays; a tap anywhere brings it back.
+    final eye = find.byKey(TestIds.gameOverView);
+    expect(eye, findsOneWidget);
+    double opacity() => tester
+        .widget<AnimatedOpacity>(
+          find.ancestor(of: panel, matching: find.byType(AnimatedOpacity)),
+        )
+        .opacity;
+    expect(opacity(), 1);
+    await tester.tap(eye);
     await tester.pump();
-    expect(find.byKey(TestIds.tipHint), findsNothing);
-    // Never again.
-    game.run.meter = 0;
-    await frames(tester, 2);
-    game.run.meter = WingyWorld.meterMax;
-    game.run.y = 300;
-    game.run.vy = 0;
-    await frames(tester, 3);
-    expect(find.byKey(TestIds.tipHint), findsNothing);
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(opacity(), 0);
+    expect(eye, findsOneWidget);
+    expect(game.run.isDead, isTrue);
+    await tester.tapAt(const Offset(200, 700));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(opacity(), 1);
+    // The eye button brings it back too.
+    await tester.tap(eye);
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(opacity(), 0);
+    await tester.tap(eye);
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(opacity(), 1);
   });
 }

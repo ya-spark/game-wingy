@@ -21,7 +21,6 @@ class SaveData {
     this.paletteStart = 0,
     this.tipsOff = false,
     this.tipHomeDay = -1,
-    this.seenHints = const {},
     this.dashRefills = 0,
     this.adRefillDay = -1,
     this.adRefillsToday = 0,
@@ -64,9 +63,6 @@ class SaveData {
   /// Day index on which the home tip of the day was closed.
   final int tipHomeDay;
 
-  /// One-time hints already shown.
-  final Set<String> seenHints;
-
   /// Dash Refill stock: each one starts a run with a full Glow Dash meter.
   final int dashRefills;
 
@@ -104,7 +100,6 @@ class SaveData {
     int? paletteStart,
     bool? tipsOff,
     int? tipHomeDay,
-    Set<String>? seenHints,
     int? dashRefills,
     int? adRefillDay,
     int? adRefillsToday,
@@ -132,7 +127,6 @@ class SaveData {
     paletteStart: paletteStart ?? this.paletteStart,
     tipsOff: tipsOff ?? this.tipsOff,
     tipHomeDay: tipHomeDay ?? this.tipHomeDay,
-    seenHints: seenHints ?? this.seenHints,
     dashRefills: dashRefills ?? this.dashRefills,
     adRefillDay: adRefillDay ?? this.adRefillDay,
     adRefillsToday: adRefillsToday ?? this.adRefillsToday,
@@ -163,7 +157,6 @@ class SaveData {
     'paletteStart': paletteStart,
     'tipsOff': tipsOff,
     'tipHomeDay': tipHomeDay,
-    'seenHints': seenHints.toList()..sort(),
     'dashRefills': dashRefills,
     'adRefillDay': adRefillDay,
     'adRefillsToday': adRefillsToday,
@@ -197,7 +190,6 @@ class SaveData {
     paletteStart: ((j['paletteStart'] as num?)?.toInt() ?? 0).clamp(0, 5),
     tipsOff: j['tipsOff'] as bool? ?? false,
     tipHomeDay: (j['tipHomeDay'] as num?)?.toInt() ?? -1,
-    seenHints: {...?(j['seenHints'] as List?)?.cast<String>()},
     dashRefills: (j['dashRefills'] as num?)?.toInt() ?? 0,
     adRefillDay: (j['adRefillDay'] as num?)?.toInt() ?? -1,
     adRefillsToday: (j['adRefillsToday'] as num?)?.toInt() ?? 0,

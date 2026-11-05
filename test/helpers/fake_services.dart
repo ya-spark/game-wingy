@@ -20,7 +20,6 @@ Future<Services> buildFakeServices({
   FakeAdService? ads,
   DateTime Function()? clock,
   FakeShareService? share,
-  bool appLinkEnabled = false,
   bool tips = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
@@ -37,7 +36,7 @@ Future<Services> buildFakeServices({
     clock: clock,
   );
   await profile.init();
-  // Tips are off by default in tests so cards never move the buttons other tests tap.
+  // Tips are off by default in tests so the home tip dialog never covers the screen.
   if (!tips) await profile.setTipsEnabled(false);
   final services = Services(
     config: config,
@@ -51,7 +50,7 @@ Future<Services> buildFakeServices({
     analytics: const NoopAnalyticsService(),
     remoteConfig: const NoopRemoteConfigService(),
     profile: profile,
-    share: share ?? FakeShareService(appLinkEnabled: appLinkEnabled),
+    share: share ?? FakeShareService(link: config.shareLink),
   );
   services.wirePurchases();
   return services;

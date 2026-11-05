@@ -1,88 +1,171 @@
 import 'package:flutter/material.dart';
 
-/// Game-over overlay: no card and no scrim, just outlined text and glossy pill buttons floating
-/// at the top, so the play field underneath stays fully visible.
+/// Game-over overlay: a rounded dark card (solid surface at about 90 % opacity, thin light
+/// border, soft shadow) so text and buttons never mix with the game behind it.
+///
+/// Top to bottom: [share] (top left) with the eye button (top right), title, [details],
+/// [buttons] side by side, [refill], [primary] (Continue, large and gold, last).
+/// While [hidden] the card fades out (0.2 s) and only the eye button stays; a tap anywhere
+/// calls [onToggleView] to bring it back.
 class GameOverPanel extends StatelessWidget {
   const GameOverPanel({
     super.key,
-    required this.title,
     required this.details,
     required this.buttons,
-    this.lead,
+    required this.viewKey,
+    required this.panelKey,
+    required this.hidden,
+    required this.onToggleView,
+    this.share,
+    this.refill,
+    this.primary,
   });
-
-  final String title;
 
   /// Score, best, medal... shown under the title.
   final List<Widget> details;
+
+  /// Play again and Home, side by side.
   final List<GameOverButton> buttons;
+  final GameOverButton? share;
+  final GameOverButton? refill;
 
-  /// Optional main action, shown alone on its own row above [buttons].
-  final GameOverButton? lead;
+  /// Continue: large and gold, at the bottom.
+  final GameOverButton? primary;
+  final Key viewKey;
+  final Key panelKey;
+  final bool hidden;
+  final VoidCallback onToggleView;
 
-  /// White text with a dark outline: readable over any background without a panel.
-  static List<Shadow> get outline => const [
-    Shadow(color: Color(0xE6000000), blurRadius: 0, offset: Offset(-1.5, -1.5)),
-    Shadow(color: Color(0xE6000000), blurRadius: 0, offset: Offset(1.5, -1.5)),
-    Shadow(color: Color(0xE6000000), blurRadius: 0, offset: Offset(-1.5, 1.5)),
-    Shadow(color: Color(0xE6000000), blurRadius: 0, offset: Offset(1.5, 1.5)),
-    Shadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 3)),
-  ];
+  static const surface = Color(0xE61B1233); // 90 % opaque deep indigo
+  static const border = Color(0x66FFFFFF);
+  static const fadeDuration = Duration(milliseconds: 200);
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Material(
-            type: MaterialType.transparency,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ShaderMask(
-                  shaderCallback: (r) => const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFFFFF3A0), Color(0xFFFFB300)],
-                  ).createShader(r),
-                  child: Text(
-                    title.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                      color: Colors.white,
-                      shadows: outline,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                DefaultTextStyle.merge(
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    shadows: outline,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: details,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (lead != null) ...[lead!, const SizedBox(height: 10)],
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: buttons,
-                ),
-              ],
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // A tap anywhere brings the panel back while it is hidden.
+        if (hidden)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onToggleView,
             ),
           ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Stack(
+                  children: [
+                    IgnorePointer(
+                      ignoring: hidden,
+                      child: AnimatedOpacity(
+                        opacity: hidden ? 0 : 1,
+                        duration: fadeDuration,
+                        child: _card(),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: hidden ? surface : Colors.transparent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          key: viewKey,
+                          tooltip: hidden ? 'Show results' : 'See the board',
+                          color: Colors.white,
+                          icon: Icon(
+                            hidden ? Icons.visibility_off : Icons.visibility,
+                          ),
+                          onPressed: onToggleView,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _card() {
+    return Container(
+      key: panelKey,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 24,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Share at the top left; the eye button overlays the top right.
+            SizedBox(
+              height: 52,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: share ?? const SizedBox.shrink(),
+              ),
+            ),
+            ShaderMask(
+              shaderCallback: (r) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFF3A0), Color(0xFFFFB300)],
+              ).createShader(r),
+              child: const Text(
+                'GAME OVER',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            DefaultTextStyle.merge(
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: details),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                for (var i = 0; i < buttons.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 10),
+                  Expanded(child: buttons[i]),
+                ],
+              ],
+            ),
+            if (refill != null) ...[const SizedBox(height: 10), refill!],
+            if (primary != null) ...[const SizedBox(height: 14), primary!],
+          ],
         ),
       ),
     );
@@ -96,6 +179,7 @@ enum GameOverButtonKind { primary, secondary, ghost }
 enum GameOverButtonSize { large, normal, small }
 
 /// Glossy pill button: gold for the main action, purple-pink for secondary, glass for ghost.
+/// All label colours reach at least 4.5:1 against their fill.
 class GameOverButton extends StatelessWidget {
   const GameOverButton({
     super.key,
@@ -124,7 +208,7 @@ class GameOverButton extends StatelessWidget {
         const Color(0xFFFFF3A0),
       ),
       GameOverButtonKind.secondary => (
-        const [Color(0xFF8E54E9), Color(0xFFE94E9B)],
+        const [Color(0xFF6D3BD0), Color(0xFFB83280)],
         Colors.white,
         const Color(0xFFFFD6F2),
       ),
@@ -170,6 +254,7 @@ class GameOverButton extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (icon != null) ...[
                       Icon(icon, size: 20, color: fg),
@@ -186,9 +271,6 @@ class GameOverButton extends StatelessWidget {
                               fontSize: fontSize,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.5,
-                              shadows: kind == GameOverButtonKind.ghost
-                                  ? GameOverPanel.outline
-                                  : null,
                             ),
                           ),
                         ),

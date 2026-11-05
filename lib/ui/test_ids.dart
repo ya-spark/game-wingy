@@ -39,6 +39,8 @@ abstract final class TestIds {
   static const gameOverRetry = Key('game.over.retry');
   static const gameOverHome = Key('game.over.home');
   static const gameOverShare = Key('game.over.share');
+  static const gameOverPanel = Key('game.over.panel');
+  static const gameOverView = Key('game.over.view');
 
   // Pause dialog
   static const gamePauseResume = Key('game.pause.resume');
@@ -83,10 +85,7 @@ abstract final class TestIds {
   static const settingsShareApp = Key('settings.shareApp');
 
   // Tips
-  static const tipGameOver = Key('tip.gameover');
-  static const tipPause = Key('tip.pause');
   static const tipHome = Key('tip.home');
-  static const tipHint = Key('tip.hint');
   static const tipClose = Key('tip.close');
   static const tipDontShow = Key('tip.dontShow');
 }

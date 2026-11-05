@@ -8,25 +8,33 @@ abstract class ShareService {
 
   Future<void> shareAchievement({required String title, Uint8List? image});
 
-  /// Invites to the game. Does nothing while the app link is disabled.
-  Future<void> shareApp();
+  /// Invites to the game with the high score message. Does nothing while there is no link.
+  Future<void> shareApp({int bestScore = 0});
+
+  /// True when share texts carry a link; "Share app" is shown only then.
+  bool get hasLink;
 }
 
 /// Builds the texts and delegates the actual sending to [send].
 abstract class BaseShareService implements ShareService {
   String get gameName;
-  String get storeLink;
-  bool get appLinkEnabled;
 
-  String _withLink(String text) => appLinkEnabled ? '$text $storeLink' : text;
+  /// The link added on a new line after the message, or null for none.
+  String? get link;
+
+  @override
+  bool get hasLink => link != null && link!.isNotEmpty;
+
+  String _withLink(String text) => hasLink ? '$text\n$link' : text;
 
   String scoreText(int score) =>
-      _withLink('I scored $score in $gameName! Can you beat it?');
+      _withLink('This is my high score in $gameName: $score. Can you beat it?');
 
   String achievementText(String title) =>
-      _withLink('I unlocked "$title" in $gameName!');
+      _withLink('I unlocked "$title" in $gameName! Can you beat it?');
 
-  String appText() => _withLink('Try $gameName!');
+  String appText(int bestScore) =>
+      bestScore > 0 ? scoreText(bestScore) : _withLink('Try $gameName!');
 
   Future<void> send(String text, Uint8List? image);
 
@@ -39,26 +47,20 @@ abstract class BaseShareService implements ShareService {
       send(achievementText(title), image);
 
   @override
-  Future<void> shareApp() async {
-    if (!appLinkEnabled) return;
-    await send(appText(), null);
+  Future<void> shareApp({int bestScore = 0}) async {
+    if (!hasLink) return;
+    await send(appText(bestScore), null);
   }
 }
 
 /// Records what would be shared (tests).
 class FakeShareService extends BaseShareService {
-  FakeShareService({
-    this.gameName = 'Wingy',
-    this.storeLink = 'https://play.google.com/store/apps/details?id=test',
-    this.appLinkEnabled = false,
-  });
+  FakeShareService({this.gameName = 'Wingy', this.link});
 
   @override
   final String gameName;
   @override
-  final String storeLink;
-  @override
-  final bool appLinkEnabled;
+  final String? link;
 
   final List<({String text, Uint8List? image})> sent = [];
 

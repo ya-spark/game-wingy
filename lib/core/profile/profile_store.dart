@@ -319,14 +319,11 @@ class ProfileStore extends ChangeNotifier {
   bool get tipsEnabled => !_data.tipsOff;
   Future<void> setTipsEnabled(bool v) => _commit(_data.copyWith(tipsOff: !v));
 
-  /// The home tip of the day has not been closed today.
+  /// The home tip dialog has not been shown today.
   bool get homeTipPending => tipsEnabled && _data.tipHomeDay != today;
-  Future<void> closeHomeTip() => _commit(_data.copyWith(tipHomeDay: today));
 
-  /// True when the one-time hint [id] may be shown now (tips on, never shown before).
-  bool hintDue(String id) => tipsEnabled && !_data.seenHints.contains(id);
-  Future<void> markHintSeen(String id) =>
-      _commit(_data.copyWith(seenHints: {..._data.seenHints, id}));
+  /// Marks today's home tip as shown (whether closed by Close or the barrier).
+  Future<void> markHomeTipShown() => _commit(_data.copyWith(tipHomeDay: today));
 
   // ---- purchases ----------------------------------------------------------
 

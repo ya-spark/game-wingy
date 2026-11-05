@@ -15,7 +15,6 @@ import '../game/rules/world.dart';
 import 'game_over_panel.dart';
 import 'share_card.dart';
 import 'test_ids.dart';
-import 'tip_card.dart';
 
 /// Player-facing label of the game over continue action (rewarded ad). Rename it here only.
 const String continueLabel = 'Continue';
@@ -41,48 +40,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   final AudioService _audio = AudioService();
   bool _started = false;
 
-  /// Game overs shown this session; a tip appears on every 2nd one.
-  int _gameOvers = 0;
-
-  /// One-time hint on screen (id and text), hidden after [_hintDuration].
-  String? _hintId;
-  String? _hintText;
-  Timer? _hintTimer;
-  static const _hintDuration = Duration(seconds: 4);
-  static const _hints = {
-    'glow_dash':
-        'Your Glow Dash is ready! Tap the bolt to smash through spires.',
-    'perfect':
-        'Perfect! Pass through the middle of gaps to keep a streak going.',
-  };
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
 
-  /// Shows the one-time hint [id] if tips are on, it was never shown, and none is showing.
-  void _maybeHint(Services s, String id) {
-    if (_hintId != null || !mounted || !s.profile.hintDue(id)) return;
-    s.profile.markHintSeen(id);
-    _hintTimer?.cancel();
-    setState(() {
-      _hintId = id;
-      _hintText = _hints[id];
-    });
-    _hintTimer = Timer(_hintDuration, _hideHint);
-  }
-
-  void _hideHint() {
-    _hintTimer?.cancel();
-    if (!mounted) return;
-    setState(() => _hintId = null);
-  }
-
   @override
   void dispose() {
-    _hintTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _audio.dispose();
     super.dispose();
@@ -124,18 +89,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         WingyGame(run: _newRun(s), reduceMotion: s.profile.data.reduceMotion);
     game.onChanged = () {
       if (!mounted) return;
-      if (game.run.canDash) _maybeHint(s, 'glow_dash');
       setState(() {});
     };
     game.onEvent = (e) {
-      if (e.type == RunEventType.perfect) _maybeHint(s, 'perfect');
       _playEventAudio(s, game, e);
       if (!s.profile.data.vibrationOn) return;
       if (e.type == RunEventType.perfect) HapticFeedback.lightImpact();
       if (e.type == RunEventType.hit) HapticFeedback.mediumImpact();
     };
     game.onGameOver = () {
-      _gameOvers++;
       _syncAudio(s);
       _audio.sfx('game_over');
       if (game.run.score > s.profile.data.bestScore) {
@@ -257,7 +219,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Paused'),
-        content: PauseTip(services: s),
         actions: [
           TextButton(
             key: TestIds.gamePauseQuit,
@@ -297,21 +258,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _dialogOpen = true;
     final game = _game!;
     final run = game.run;
-    final tip = s.profile.tipsEnabled && _gameOvers.isEven
-        ? s.tips.next()
-        : null;
-    var tipClosed = false;
-    GameOverButton retryButton(BuildContext ctx, {required bool large}) =>
-        GameOverButton(
-          key: TestIds.gameOverRetry,
-          kind: large
-              ? GameOverButtonKind.primary
-              : GameOverButtonKind.secondary,
-          size: large ? GameOverButtonSize.large : GameOverButtonSize.small,
-          icon: Icons.replay,
-          label: 'Play again',
-          onPressed: () => Navigator.pop(ctx, 'retry'),
-        );
+    // "See how you failed": hides the panel so the frozen crash frame is fully visible.
+    var panelHidden = false;
     final action = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -319,7 +267,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => GameOverPanel(
           key: TestIds.gameOverDialog,
-          title: 'Game over',
+          panelKey: TestIds.gameOverPanel,
+          viewKey: TestIds.gameOverView,
+          hidden: panelHidden,
+          onToggleView: () => setDialog(() => panelHidden = !panelHidden),
           details: [
             Text(
               '${run.score}',
@@ -328,17 +279,66 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             ),
             Text('Best ${run.bestScore}', key: TestIds.gameOverBest),
             Text(_medalName(run.medal), key: TestIds.gameOverMedal),
-            if (tip != null && !tipClosed && s.profile.tipsEnabled)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: TipCard(
-                  key: TestIds.tipGameOver,
-                  text: tip,
-                  onClose: () => setDialog(() => tipClosed = true),
-                ),
-              ),
           ],
-          lead: run.canRevive
+          share: GameOverButton(
+            key: TestIds.gameOverShare,
+            kind: GameOverButtonKind.ghost,
+            size: GameOverButtonSize.small,
+            icon: Icons.share,
+            semanticLabel: 'Share',
+            onPressed: () async {
+              final png = await captureShareCard(
+                ctx,
+                ShareCardData(
+                  gameName: s.config.displayName,
+                  headline: 'Score',
+                  big: '${run.score}',
+                  best: run.bestScore,
+                  palette: run.palette,
+                  medal: _medalName(run.medal),
+                ),
+              );
+              await s.share.shareScore(score: run.score, image: png);
+            },
+          ),
+          buttons: [
+            GameOverButton(
+              key: TestIds.gameOverRetry,
+              kind: GameOverButtonKind.secondary,
+              icon: Icons.replay,
+              label: 'Play again',
+              onPressed: () => Navigator.pop(ctx, 'retry'),
+            ),
+            GameOverButton(
+              key: TestIds.gameOverHome,
+              kind: GameOverButtonKind.ghost,
+              icon: Icons.home,
+              label: 'Home',
+              onPressed: () => Navigator.pop(ctx, 'home'),
+            ),
+          ],
+          refill: GameOverButton(
+            key: TestIds.gameOverRefill,
+            size: GameOverButtonSize.small,
+            icon: Icons.bolt,
+            label: _refillArmed
+                ? 'Dash ready'
+                : 'Dash Refill (${s.profile.dashRefills})',
+            onPressed: _refillArmed
+                ? null
+                : () async {
+                    if (s.profile.dashRefills > 0) {
+                      setDialog(() => _refillArmed = true);
+                      return;
+                    }
+                    final got = await showModalBottomSheet<bool>(
+                      context: ctx,
+                      builder: (_) => _RefillSheet(services: s),
+                    );
+                    if (got == true) setDialog(() => _refillArmed = true);
+                  },
+          ),
+          primary: run.canRevive
               ? GameOverButton(
                   key: TestIds.gameOverRevive,
                   kind: GameOverButtonKind.primary,
@@ -347,59 +347,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   label: '$continueLabel · ${run.revivesLeft} left',
                   onPressed: () => Navigator.pop(ctx, 'revive'),
                 )
-              : retryButton(ctx, large: true),
-          buttons: [
-            GameOverButton(
-              key: TestIds.gameOverRefill,
-              size: GameOverButtonSize.small,
-              icon: Icons.bolt,
-              label: _refillArmed
-                  ? 'Dash ready'
-                  : 'Dash Refill (${s.profile.dashRefills})',
-              onPressed: _refillArmed
-                  ? null
-                  : () async {
-                      if (s.profile.dashRefills > 0) {
-                        setDialog(() => _refillArmed = true);
-                        return;
-                      }
-                      final got = await showModalBottomSheet<bool>(
-                        context: ctx,
-                        builder: (_) => _RefillSheet(services: s),
-                      );
-                      if (got == true) setDialog(() => _refillArmed = true);
-                    },
-            ),
-            if (run.canRevive) retryButton(ctx, large: false),
-            GameOverButton(
-              key: TestIds.gameOverHome,
-              kind: GameOverButtonKind.ghost,
-              icon: Icons.home,
-              label: 'Home',
-              onPressed: () => Navigator.pop(ctx, 'home'),
-            ),
-            GameOverButton(
-              key: TestIds.gameOverShare,
-              kind: GameOverButtonKind.ghost,
-              size: GameOverButtonSize.small,
-              icon: Icons.share,
-              semanticLabel: 'Share',
-              onPressed: () async {
-                final png = await captureShareCard(
-                  ctx,
-                  ShareCardData(
-                    gameName: s.config.displayName,
-                    headline: 'Score',
-                    big: '${run.score}',
-                    best: run.bestScore,
-                    palette: run.palette,
-                    medal: _medalName(run.medal),
-                  ),
-                );
-                await s.share.shareScore(score: run.score, image: png);
-              },
-            ),
-          ],
+              : null,
         ),
       ),
     );
@@ -518,19 +466,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                if (_hintId != null && s.profile.tipsEnabled)
-                  Positioned(
-                    bottom: 120,
-                    left: 16,
-                    right: 16,
-                    child: Center(
-                      child: TipCard(
-                        key: TestIds.tipHint,
-                        text: _hintText ?? '',
-                        onClose: _hideHint,
-                      ),
-                    ),
-                  ),
                 if (run.phase == RunPhase.ready)
                   Center(
                     child: GestureDetector(
