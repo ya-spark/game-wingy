@@ -50,8 +50,9 @@ Future<void> killHero(WidgetTester tester, WingyGame g) async {
   g.run.invulnTimer = 0;
   g.run.y = 600;
   await frames(tester, 3);
-  // Death animation (0.6 s) then the dialog.
+  // Death animation (0.6 s) then the dialog, which eases in for 1 s before it takes taps.
   await frames(tester, 20);
+  await frames(tester, 22);
 }
 
 void main() {
@@ -236,8 +237,9 @@ void main() {
     expect(find.byKey(TestIds.gameOverRevive), findsNothing);
     expect(find.byKey(TestIds.gameOverHome), findsOneWidget);
     final large = tester.getSize(find.byKey(TestIds.gameOverRetry));
-    // Play again stays in the row next to Home, at the same size.
-    expect(large.height, again.height);
+    // Without Continue, Play again takes the large gold style (as in every game) and stays in the
+    // row next to Home.
+    expect(large.height, greaterThan(again.height));
     expect(
       tester.getCenter(find.byKey(TestIds.gameOverRetry)).dy,
       closeTo(tester.getCenter(find.byKey(TestIds.gameOverHome)).dy, 1),
@@ -349,6 +351,7 @@ void main() {
     await tester.tap(find.byKey(TestIds.gameOverRevive));
     await frames(tester, 12);
     expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
+    await frames(tester, 22); // the panel eases in again before it takes taps
     await tester.tap(find.byKey(TestIds.gameOverRetry));
     await frames(tester, 12);
     expect(g.run.phase, RunPhase.ready);

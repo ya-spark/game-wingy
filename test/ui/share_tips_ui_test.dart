@@ -56,6 +56,7 @@ Future<void> killHero(WidgetTester tester, WingyGame g) async {
   g.run.invulnTimer = 0;
   g.run.y = 600;
   await frames(tester, 23);
+  await frames(tester, 22); // the panel eases in for 1 s before it takes taps
 }
 
 /// Save service whose `save` waits until [release] is called (a slow disk write).

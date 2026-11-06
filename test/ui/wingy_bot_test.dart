@@ -61,6 +61,7 @@ void main() {
     await frames(tester, 12);
     expect(find.byKey(TestIds.gameOverDialog), findsOneWidget);
     expect(g.run.phase, RunPhase.dead);
+    await frames(tester, 22); // the panel eases in again before it takes taps
 
     // Refill ad fails: no refill granted, no coins taken.
     final coins = s.profile.data.coins;

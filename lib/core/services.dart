@@ -9,6 +9,8 @@ import 'config/app_config.dart';
 import 'config/products.dart';
 import 'identity/identity_service.dart';
 import 'leaderboard/leaderboard_service.dart';
+import 'links/external_link_service.dart';
+import 'links/url_external_link_service.dart';
 import 'notifications/local_notification_service.dart';
 import 'notifications/notification_service.dart';
 import 'parent_gate.dart';
@@ -38,8 +40,10 @@ class Services {
     required this.remoteConfig,
     required this.profile,
     required this.share,
+    ExternalLinkService? links,
     TipService? tips,
-  }) : tips = tips ?? TipService();
+  }) : links = links ?? FakeExternalLinkService(),
+       tips = tips ?? TipService();
 
   final AppConfig config;
   final ProductCatalog catalog;
@@ -54,6 +58,9 @@ class Services {
   final ProfileStore profile;
   final ShareService share;
   final TipService tips;
+
+  /// Opens Play Store pages ("More games").
+  final ExternalLinkService links;
 
   /// True while the game screen is on the navigator (set by `GameScreen`). The home tip of the day
   /// never opens while it is true, whatever the route stack looks like.
@@ -110,6 +117,7 @@ class Services {
         gameName: config.displayName,
         link: config.shareLink,
       ),
+      links: const UrlExternalLinkService(),
     );
     s.wirePurchases();
     return s;

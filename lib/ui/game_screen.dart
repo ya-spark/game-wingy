@@ -21,6 +21,18 @@ import 'widgets.dart';
 /// Player-facing label of the game over continue action (rewarded ad). Rename it here only.
 const String continueLabel = 'Continue';
 
+/// Game-over button sizes (see docs/SPEC.md, "Game over layout").
+const double _kLargeFont = 22;
+const EdgeInsets _kLargePadding = EdgeInsets.symmetric(
+  horizontal: 28,
+  vertical: 16,
+);
+const double _kSmallFont = 15;
+const EdgeInsets _kSmallPadding = EdgeInsets.symmetric(
+  horizontal: 18,
+  vertical: 9,
+);
+
 const int _wingySeed = int.fromEnvironment('WINGY_SEED', defaultValue: -1);
 
 class GameScreen extends StatefulWidget {
@@ -265,8 +277,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _dialogOpen = true;
     final game = _game!;
     final run = game.run;
-    // "See how you failed": hides the panel so the frozen crash frame is fully visible.
-    var panelHidden = false;
     final action = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -276,21 +286,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           key: TestIds.gameOverDialog,
           panelKey: TestIds.gameOverPanel,
           viewKey: TestIds.gameOverView,
-          hidden: panelHidden,
-          onToggleView: () => setDialog(() => panelHidden = !panelHidden),
-          details: [
-            Text(
-              '${run.score}',
-              key: TestIds.gameOverScore,
-              style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900),
-            ),
-            Text('Best ${run.bestScore}', key: TestIds.gameOverBest),
-            Text(_medalName(run.medal), key: TestIds.gameOverMedal),
-          ],
-          share: GameOverButton(
+          title: 'Game over',
+          shareButton: GameOverButton(
             key: TestIds.gameOverShare,
             kind: GameOverButtonKind.ghost,
-            size: GameOverButtonSize.small,
+            fontSize: _kSmallFont,
+            padding: _kSmallPadding,
             icon: Icons.share,
             semanticLabel: 'Share',
             onPressed: () async {
@@ -308,25 +309,19 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
               await s.share.shareScore(score: run.score, image: png);
             },
           ),
-          buttons: [
-            GameOverButton(
-              key: TestIds.gameOverRetry,
-              kind: GameOverButtonKind.secondary,
-              icon: Icons.replay,
-              label: 'Play again',
-              onPressed: () => Navigator.pop(ctx, 'retry'),
+          details: [
+            Text(
+              '${run.score}',
+              key: TestIds.gameOverScore,
+              style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900),
             ),
-            GameOverButton(
-              key: TestIds.gameOverHome,
-              kind: GameOverButtonKind.ghost,
-              icon: Icons.home,
-              label: 'Home',
-              onPressed: () => Navigator.pop(ctx, 'home'),
-            ),
+            Text('Best ${run.bestScore}', key: TestIds.gameOverBest),
+            Text(_medalName(run.medal), key: TestIds.gameOverMedal),
           ],
-          refill: GameOverButton(
+          extraButton: GameOverButton(
             key: TestIds.gameOverRefill,
-            size: GameOverButtonSize.small,
+            fontSize: _kSmallFont,
+            padding: _kSmallPadding,
             icon: Icons.bolt,
             label: _refillArmed
                 ? 'Dash ready'
@@ -345,16 +340,39 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     if (got == true) setDialog(() => _refillArmed = true);
                   },
           ),
-          primary: run.canRevive
+          leadButton: run.canRevive
               ? GameOverButton(
                   key: TestIds.gameOverRevive,
                   kind: GameOverButtonKind.primary,
-                  size: GameOverButtonSize.large,
                   icon: Icons.smart_display,
                   label: '$continueLabel · ${run.revivesLeft} left',
+                  fontSize: _kLargeFont,
+                  padding: _kLargePadding,
                   onPressed: () => Navigator.pop(ctx, 'revive'),
                 )
               : null,
+          buttons: [
+            GameOverButton(
+              key: TestIds.gameOverRetry,
+              kind: run.canRevive
+                  ? GameOverButtonKind.secondary
+                  : GameOverButtonKind.primary,
+              icon: Icons.replay,
+              label: 'Play again',
+              fontSize: run.canRevive ? _kSmallFont : _kLargeFont,
+              padding: run.canRevive ? _kSmallPadding : _kLargePadding,
+              onPressed: () => Navigator.pop(ctx, 'retry'),
+            ),
+            GameOverButton(
+              key: TestIds.gameOverHome,
+              kind: GameOverButtonKind.ghost,
+              icon: Icons.home,
+              label: 'Home',
+              fontSize: _kSmallFont,
+              padding: _kSmallPadding,
+              onPressed: () => Navigator.pop(ctx, 'home'),
+            ),
+          ],
         ),
       ),
     );
