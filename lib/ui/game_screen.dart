@@ -357,45 +357,16 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     switch (action) {
       case 'revive':
-        // Remove Ads: continue at once. Under 50 coins: straight to the ad. Otherwise ask.
-        var how = 'ad';
-        if (!s.profile.data.adsRemoved &&
-            s.profile.data.coins >= continueCoinCost) {
-          final choice = await showDialog<String>(
-            context: context,
-            builder: (_) => const _ContinueChoice(),
-          );
-          if (!mounted) return;
-          if (choice == null) {
-            _showGameOver(s);
-            return;
-          }
-          how = choice;
-        }
-        final bool paid;
-        if (how == 'coins') {
-          paid = await s.profile.spendCoins(continueCoinCost);
-        } else {
-          paid = await s.rewarded(AdPlacement.revive);
-        }
+        // Remove Ads (s.rewarded grants at once) or an earned rewarded ad; never coins.
+        final earned = await s.rewarded(AdPlacement.revive);
         if (!mounted) return;
-        if (paid && run.revive()) {
+        if (earned && run.revive()) {
           game.revived();
           return;
         }
-        if (paid && how == 'coins') {
-          await s.profile.addCoins(
-            continueCoinCost,
-          ); // revive refused: give back
-          if (!mounted) return;
-        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              how == 'coins'
-                  ? 'Not enough coins.'
-                  : 'Ad not available. Try again later.',
-            ),
+          const SnackBar(
+            content: Text('No ad available right now. Try again in a moment.'),
           ),
         );
         _showGameOver(s);
@@ -683,40 +654,6 @@ class _DashButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Small choice shown on Continue when the player has enough coins: ad (free) or coins.
-class _ContinueChoice extends StatelessWidget {
-  const _ContinueChoice();
-
-  @override
-  Widget build(BuildContext context) => SimpleDialog(
-    title: const Text('Continue'),
-    children: [
-      SimpleDialogOption(
-        key: TestIds.gameOverContinueAd,
-        onPressed: () => Navigator.pop(context, 'ad'),
-        child: const Row(
-          spacing: 8,
-          children: [
-            Icon(Icons.smart_display),
-            Flexible(child: Text('Watch an ad (free)')),
-          ],
-        ),
-      ),
-      SimpleDialogOption(
-        key: TestIds.gameOverContinueCoins,
-        onPressed: () => Navigator.pop(context, 'coins'),
-        child: const Row(
-          spacing: 8,
-          children: [
-            CoinIcon(),
-            Flexible(child: Text('Use $continueCoinCost coins')),
-          ],
-        ),
-      ),
-    ],
-  );
 }
 
 /// Bottom sheet offering a Dash Refill for coins or for a rewarded ad.

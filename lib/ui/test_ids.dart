@@ -35,8 +35,6 @@ abstract final class TestIds {
   static const gameOverBest = Key('game.over.best');
   static const gameOverMedal = Key('game.over.medal');
   static const gameOverRevive = Key('game.over.revive');
-  static const gameOverContinueAd = Key('game.over.continue.ad');
-  static const gameOverContinueCoins = Key('game.over.continue.coins');
   static const gameOverRefill = Key('game.over.refill');
   static const gameOverRetry = Key('game.over.retry');
   static const gameOverHome = Key('game.over.home');

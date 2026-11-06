@@ -43,9 +43,6 @@ class GameSummary {
   final int coins;
 }
 
-/// Coins a Continue costs when paid with coins instead of a rewarded ad.
-const int continueCoinCost = 50;
-
 /// Holds the player's [SaveData], applies the retention engines and persists every change.
 /// UI listens to it; game rules never touch it.
 class ProfileStore extends ChangeNotifier {
