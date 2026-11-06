@@ -18,10 +18,14 @@ import 'test_ids.dart';
 /// One ticker drives one painter. It stops while the home route is covered or the app is in the
 /// background, and with Reduce motion on it shows one still frame.
 class HomeHero extends StatefulWidget {
-  const HomeHero({super.key});
+  const HomeHero({super.key, this.height = maxHeight});
 
-  /// Height of the band in dp.
-  static const double height = 160;
+  /// Height of the band when there is room, and the least it shrinks to, in dp.
+  static const double maxHeight = 160;
+  static const double minHeight = 96;
+
+  /// Height of the band in dp (the scene is scaled to fit).
+  final double height;
 
   @override
   State<HomeHero> createState() => HomeHeroState();
@@ -110,7 +114,7 @@ class HomeHeroState extends State<HomeHero>
   @override
   Widget build(BuildContext context) => SizedBox(
     key: TestIds.homeHero,
-    height: HomeHero.height,
+    height: widget.height,
     width: double.infinity,
     child: ExcludeSemantics(
       child: IgnorePointer(
