@@ -106,6 +106,7 @@ No Flutter, Flame or Android imports in this folder. Randomness comes from an in
 ### Tips
 - `lib/game/tips.dart`: 15 tips from this spec's rules, kind, at most 80 characters, unique, no mention of other games (unit-tested). `TipService` (`lib/core/tips/`, pure Dart) deals them from a shuffled bag (never the same tip twice in a row) and gives a tip of the day from the day index.
 - The only place a tip appears is a dialog on the home page (`lib/ui/tip_dialog.dart`, `tip.home`): "Tip of the day", the tip, a "Don't show tips again" checkbox (`tip.dontShow`) and Close (`tip.close`). It opens once per day when the home page is first shown (saved `tipHomeDay`, set when it opens, so it does not return the same day however it was dismissed). Close alone hides it; ticking the box and closing turns tips off everywhere. Settings "Show tips" (`settings.tips`, on by default) is the same saved profile value (`tipsOff`). With tips off the dialog never opens.
+- The dialog opens only while the home page is the page on top and no run is on screen (`Services.inRun`, set by the game screen), checked again after the save that marks the tip as shown. A blocked tip is never queued; the next time Home is shown it is tried again (still once per day).
 - No tip is ever shown in a game or on the game over screen: no game over tip, no pause tip, no first-time special-block hints. The home page layout has no tip card.
 
 ## 6. Monetization

@@ -41,15 +41,20 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool _refillArmed = false;
   final AudioService _audio = AudioService();
   bool _started = false;
+  Services? _services;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Tells Home (the tip of the day) that a run is on screen; cleared in dispose.
+    _services = context.getInheritedWidgetOfExactType<ServicesScope>()?.services
+      ?..inRun = true;
   }
 
   @override
   void dispose() {
+    _services?.inRun = false;
     WidgetsBinding.instance.removeObserver(this);
     _audio.dispose();
     super.dispose();

@@ -55,6 +55,10 @@ class Services {
   final ShareService share;
   final TipService tips;
 
+  /// True while the game screen is on the navigator (set by `GameScreen`). The home tip of the day
+  /// never opens while it is true, whatever the route stack looks like.
+  bool inRun = false;
+
   /// Parent gate state (wrong-answer counter and lock) shared by every purchase button.
   late ParentGate parentGate = ParentGate();
 

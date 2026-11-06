@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wingy/app.dart';
 import 'package:wingy/core/services.dart';
+import 'package:wingy/core/save/save_data.dart';
+import 'package:wingy/core/save/save_service.dart';
 import 'package:wingy/core/share/share_service.dart';
 import 'package:wingy/game/flame/wingy_game.dart';
 import 'package:wingy/game/rules/wingy_run.dart';
@@ -53,6 +56,19 @@ Future<void> killHero(WidgetTester tester, WingyGame g) async {
   g.run.invulnTimer = 0;
   g.run.y = 600;
   await frames(tester, 23);
+}
+
+/// Save service whose `save` waits until [release] is called (a slow disk write).
+class _GatedSaveService extends MemorySaveService {
+  final _gate = Completer<void>();
+  bool gated = false;
+  void release() => _gate.complete();
+
+  @override
+  Future<void> save(SaveData d) async {
+    if (gated) await _gate.future;
+    await super.save(d);
+  }
 }
 
 void main() {
@@ -171,6 +187,49 @@ void main() {
     // Next day it is pending again.
     now = DateTime.utc(2026, 11, 6, 10);
     expect(s.profile.homeTipPending, isTrue);
+  });
+
+  testWidgets('no tip while a run is on screen: resume with the game on top', (
+    tester,
+  ) async {
+    var now = DateTime.utc(2026, 11, 5, 10);
+    final s = await buildFakeServices(clock: () => now, tips: true);
+    await pumpApp(tester, s);
+    await tester.tap(find.byKey(TestIds.tipClose));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byKey(TestIds.homePlay));
+    await frames(tester, 10);
+    expect(s.inRun, isTrue);
+    // A new day starts while the run is going, then the app comes back from the background.
+    now = DateTime.utc(2026, 11, 6, 10);
+    expect(s.profile.homeTipPending, isTrue);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await frames(tester, 10);
+    expect(find.byKey(TestIds.tipHome), findsNothing);
+    // Nothing was queued: the tip is still pending, and the flag clears when the run is left.
+    expect(s.profile.homeTipPending, isTrue);
+  });
+
+  testWidgets('no tip when Play is tapped while the tip is still being saved', (
+    tester,
+  ) async {
+    final saves = _GatedSaveService();
+    final s = await buildFakeServices(tips: true, profileSaves: saves);
+    saves.gated = true; // the save that marks the tip as shown is slow
+    await pumpApp(tester, s);
+    expect(find.byKey(TestIds.tipHome), findsNothing);
+    await tester.tap(find.byKey(TestIds.homePlay));
+    await frames(tester, 10);
+    saves.release();
+    await frames(tester, 10);
+    expect(find.byKey(TestIds.tipHome), findsNothing);
+    expect(find.byKey(TestIds.gamePause), findsOneWidget);
   });
 
   testWidgets('the home page has no tip card in its layout', (tester) async {
