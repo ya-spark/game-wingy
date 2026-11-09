@@ -13,12 +13,37 @@ import 'parent_gate.dart';
 import 'test_ids.dart';
 import 'widgets.dart';
 
-class ShopScreen extends StatelessWidget {
+class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
+
+  @override
+  State<ShopScreen> createState() => _ShopScreenState();
+}
+
+class _ShopScreenState extends State<ShopScreen> {
+  bool _loading = false;
+  bool _requested = false;
+
+  /// Billing may not have been ready at app start (or failed once), so every shop
+  /// visit asks the store again and rebuilds when it answers.
+  Future<void> _reload(Services s) async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    await s.purchases.initialize();
+    if (mounted) setState(() => _loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = ServicesScope.of(context);
+    if (!_requested) {
+      _requested = true;
+      if (!s.purchases.available || s.purchases.products.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _reload(s);
+        });
+      }
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -45,11 +70,30 @@ class ShopScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 if (!s.purchases.available || products.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
                     child: Center(
                       key: TestIds.shopUnavailable,
-                      child: Text('Store unavailable right now.'),
+                      child: _loading
+                          ? const CircularProgressIndicator()
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              spacing: 12,
+                              children: [
+                                Text(
+                                  s.purchases.available
+                                      ? 'These items are not on Google Play yet.'
+                                      : 'Cannot reach Google Play. Check your '
+                                            'connection and that the game was '
+                                            'installed from Google Play.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                OutlinedButton(
+                                  onPressed: () => _reload(s),
+                                  child: const Text('Try again'),
+                                ),
+                              ],
+                            ),
                     ),
                   )
                 else

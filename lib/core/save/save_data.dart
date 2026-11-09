@@ -192,7 +192,7 @@ class SaveData {
       0.0,
       1.0,
     ),
-    ambience: j['ambience'] as String? ?? 'night',
+    ambience: _migrateAmbience(j['ambience'] as String?),
     voiceOn: j['voiceOn'] as bool? ?? true,
     sfxOn: j['sfxOn'] as bool? ?? true,
     leftHanded: j['leftHanded'] as bool? ?? false,
@@ -276,3 +276,7 @@ abstract final class SaveMigrator {
     'version': 4,
   };
 }
+
+/// The retired "Before sunrise" track falls back to the default (owner, 2026-11-09).
+String _migrateAmbience(String? id) =>
+    id == null || id == 'before_sunrise' ? 'night' : id;

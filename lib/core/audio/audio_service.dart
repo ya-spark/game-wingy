@@ -12,7 +12,6 @@ const List<(String, String, String?)> ambienceTracks = [
   ('night', 'Night', 'night.mp3'),
   ('bird', 'Bird', 'bird.mp3'),
   ('morning_birds', 'Morning birds', 'morning_birds.mp3'),
-  ('before_sunrise', 'Before sunrise', 'before_sunrise.mp3'),
   ('heartbeat', 'Heartbeat', 'heartbeat.mp3'),
 ];
 
@@ -197,5 +196,46 @@ class _VoicePlayerOutput implements VoiceOutput {
     final pos = await p.getCurrentPosition();
     if (d == null || pos == null) return null;
     return d - pos;
+  }
+}
+
+/// One-shot player for the Settings "preview" button. Plays a track from the start, looping
+/// until stopped; separate from the in-game [AudioService] so Settings needs no game audio.
+class AmbiencePreview {
+  AudioPlayer? _player;
+  String? playing;
+
+  Future<void> toggle(String id, double volume) async {
+    if (playing == id) return stop();
+    String? file;
+    for (final t in ambienceTracks) {
+      if (t.$1 == id) file = t.$3;
+    }
+    if (file == null) return stop();
+    try {
+      final p = _player ??= AudioPlayer();
+      await p.setReleaseMode(ReleaseMode.loop);
+      await p.setVolume(AudioService.ambienceVolume * volume * 2);
+      await p.play(AssetSource('ambience/$file'));
+      playing = id;
+    } catch (e) {
+      debugPrint('audio: preview $id failed: $e');
+      playing = null;
+    }
+  }
+
+  Future<void> stop() async {
+    playing = null;
+    try {
+      await _player?.stop();
+    } catch (_) {}
+  }
+
+  Future<void> dispose() async {
+    playing = null;
+    try {
+      await _player?.dispose();
+    } catch (_) {}
+    _player = null;
   }
 }

@@ -46,6 +46,12 @@ class PlayPurchaseService implements PurchaseService {
       for (final d in response.productDetails) {
         _details[d.id] = d;
       }
+      if (response.notFoundIDs.isNotEmpty) {
+        debugPrint('Products not found in Play: ${response.notFoundIDs}');
+      }
+      if (response.error != null) {
+        debugPrint('Product query error: ${response.error!.message}');
+      }
     } on Object catch (e) {
       debugPrint('Billing init failed: $e');
       _available = false;
