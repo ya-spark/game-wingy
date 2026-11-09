@@ -109,7 +109,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final saved = widget.game == null ? s.profile.data.game : null;
     if (saved != null) {
       restored = WingyRun.restore(saved, bestScore: s.profile.data.bestScore);
-      if (restored == null) s.profile.saveGame(null);
+      if (restored == null) {
+        // Not during build: clearing notifies the profile's listeners.
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => s.profile.saveGame(null),
+        );
+      }
     }
     final game =
         widget.game ??
@@ -264,9 +269,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Exit from the pause dialog: an unfinished run stays saved (autosaved when paused) and
+  /// is recorded when it ends; a run that never started has nothing to keep.
   Future<void> _quit(Services s) async {
-    await s.profile.saveGame(null);
-    await _finishGame(s);
+    final run = _game!.run;
+    final keep =
+        widget.game == null && run.phase == RunPhase.playing && !run.isDead;
+    if (!keep) await _finishGame(s);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -290,7 +299,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           TextButton(
             key: TestIds.gamePauseQuit,
             onPressed: () => Navigator.pop(ctx, 'quit'),
-            child: const Text('Quit'),
+            child: const Text('Exit'),
           ),
           FilledButton(
             key: TestIds.gamePauseResume,
@@ -503,7 +512,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       IconButton.filledTonal(
                         key: TestIds.gameBack,
                         icon: const Icon(Icons.chevron_left),
-                        onPressed: () => _quit(s),
+                        onPressed: _pause,
                       ),
                       const SizedBox(height: 8),
                       _Meter(pips: run.meter),
@@ -588,7 +597,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         ],
       ),
     );
-    // Back pauses (the pause dialog offers Resume or Quit) instead of ending the run.
+    // Back pauses (the pause dialog offers Resume or Exit) instead of ending the run.
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {

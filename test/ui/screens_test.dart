@@ -259,6 +259,10 @@ void main() {
     expect(find.byKey(const Key('game.banner')), findsNothing);
     await tester.tap(find.byKey(TestIds.gameBack));
     await settle(tester);
+    await tester.tap(
+      find.byKey(TestIds.gamePauseQuit),
+    ); // Back asks Resume or Exit
+    await settle(tester);
     expect(find.byKey(TestIds.homePlay), findsOneWidget);
     expect(find.byKey(TestIds.homeBanner), findsOneWidget);
   });
