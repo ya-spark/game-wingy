@@ -127,6 +127,85 @@ class WingyRun {
     return out;
   }
 
+  // ---- autosave -----------------------------------------------------------
+
+  /// The running run as JSON for the autosave. Not meaningful before the first flap or once dead.
+  Map<String, Object?> toJson() => {
+    'y': y,
+    'vy': vy,
+    'time': time,
+    'nextPairX': _nextPairX,
+    'pairs': [for (final p in pairs) p.toJson()],
+    'generator': _generator.toJson(),
+    'paletteStart': paletteStart,
+    'score': score,
+    'pairsPassed': pairsPassed,
+    'perfectStreak': perfectStreak,
+    'maxStreak': maxStreak,
+    'perfectPasses': perfectPasses,
+    'maxBloomBonus': maxBloomBonus,
+    'bloomHits': bloomHits,
+    'orbsCollected': orbsCollected,
+    'coins': coins,
+    'meter': meter,
+    'dashUses': dashUses,
+    'dashShattered': dashShattered,
+    'revivesUsed': revivesUsed,
+    'dashTimer': dashTimer,
+    'graceTimer': graceTimer,
+    'floatTimer': floatTimer,
+    'easing': _easing,
+    'invulnTimer': invulnTimer,
+  };
+
+  /// Rebuilds a run saved by [toJson], paused and playing. Null when [j] is unusable.
+  static WingyRun? restore(Map<String, Object?> j, {required int bestScore}) {
+    try {
+      double d(String k) => (j[k]! as num).toDouble();
+      int i(String k) => (j[k]! as num).toInt();
+      final run = WingyRun(
+        bestScore: bestScore,
+        startMeter: i('meter'),
+        paletteStart: i('paletteStart'),
+      );
+      run.pairs
+        ..clear()
+        ..addAll([
+          for (final p in j['pairs']! as List) SpirePair.fromJson(p as Map),
+        ]);
+      run._generator.restoreState(j['generator']! as Map);
+      run
+        ..phase = RunPhase.playing
+        ..paused = true
+        ..y = d('y')
+        ..vy = d('vy')
+        ..time = d('time')
+        .._nextPairX = d('nextPairX')
+        ..score = i('score')
+        ..pairsPassed = i('pairsPassed')
+        ..perfectStreak = i('perfectStreak')
+        ..maxStreak = i('maxStreak')
+        ..perfectPasses = i('perfectPasses')
+        ..maxBloomBonus = i('maxBloomBonus')
+        ..bloomHits = i('bloomHits')
+        ..orbsCollected = i('orbsCollected')
+        ..coins = i('coins')
+        ..dashUses = i('dashUses')
+        ..dashShattered = i('dashShattered')
+        ..revivesUsed = i('revivesUsed')
+        ..dashTimer = d('dashTimer')
+        ..graceTimer = d('graceTimer')
+        ..floatTimer = d('floatTimer')
+        .._easing = j['easing']! as bool
+        ..invulnTimer = d('invulnTimer');
+      if (run.score > run.bestScore) run.bestScore = run.score;
+      run._events.clear();
+      return run;
+    } on Object {
+      return null;
+    }
+  }
+
   // ---- input --------------------------------------------------------------
 
   /// Starts the run without flapping (tests, reviving into play).

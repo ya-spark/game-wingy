@@ -29,6 +29,35 @@ class SpirePair {
   final bool hasOrb;
   bool orbCollected = false;
 
+  Map<String, Object?> toJson() => {
+    'number': number,
+    'x': x,
+    'base': baseCenterY,
+    'gap': gapHeight,
+    'drifting': drifting,
+    'orb': hasOrb,
+    'age': age,
+    'passed': passed,
+    'shattered': shattered,
+    'orbCollected': orbCollected,
+  };
+
+  factory SpirePair.fromJson(Map j) {
+    final p = SpirePair(
+      number: (j['number']! as num).toInt(),
+      x: (j['x']! as num).toDouble(),
+      baseCenterY: (j['base']! as num).toDouble(),
+      gapHeight: (j['gap']! as num).toDouble(),
+      drifting: j['drifting']! as bool,
+      hasOrb: j['orb']! as bool,
+    );
+    p.age = (j['age']! as num).toDouble();
+    p.passed = j['passed']! as bool;
+    p.shattered = j['shattered']! as bool;
+    p.orbCollected = j['orbCollected']! as bool;
+    return p;
+  }
+
   double get left => x - WingyWorld.spireWidth / 2;
   double get right => x + WingyWorld.spireWidth / 2;
 

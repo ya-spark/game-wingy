@@ -17,6 +17,21 @@ class GapGenerator {
 
   int get generated => _count;
 
+  /// Generator position for the autosave (the random stream itself starts anew on restore).
+  Map<String, Object?> toJson() => {
+    'count': _count,
+    'prevCenter': _prevCenter,
+    'prevHadOrb': _prevHadOrb,
+    'prevGap': _prevGap,
+  };
+
+  void restoreState(Map j) {
+    _count = (j['count']! as num).toInt();
+    _prevCenter = (j['prevCenter'] as num?)?.toDouble();
+    _prevHadOrb = j['prevHadOrb']! as bool;
+    _prevGap = (j['prevGap']! as num).toDouble();
+  }
+
   /// Base gap height for the pair with 0-based index [i].
   static double baseGap(int i) => max(
     WingyWorld.gapFloor,

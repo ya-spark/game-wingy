@@ -34,7 +34,11 @@ class SaveData {
     this.processedPurchases = const {},
     this.ownedSkins = const {'moth'},
     this.equippedSkin = 'moth',
+    this.game,
   });
+
+  /// The unfinished run (autosave), or null when none is running. See `WingyRun.toJson`.
+  final Map<String, Object?>? game;
 
   /// Bump when the JSON shape changes and add a step to [SaveMigrator].
   static const int currentVersion = 4;
@@ -119,7 +123,10 @@ class SaveData {
     Set<String>? processedPurchases,
     Set<String>? ownedSkins,
     String? equippedSkin,
+    Map<String, Object?>? game,
+    bool clearGame = false,
   }) => SaveData(
+    game: clearGame ? null : (game ?? this.game),
     coins: coins ?? this.coins,
     bestScore: bestScore ?? this.bestScore,
     adsRemoved: adsRemoved ?? this.adsRemoved,
@@ -158,6 +165,7 @@ class SaveData {
     'soundOn': soundOn,
     'masterVolume': masterVolume,
     'ambience': ambience,
+    if (game != null) 'game': game,
     'voiceOn': voiceOn,
     'sfxOn': sfxOn,
     'leftHanded': leftHanded,
@@ -219,6 +227,7 @@ class SaveData {
     },
     ownedSkins: {'moth', ...?(j['ownedSkins'] as List?)?.cast<String>()},
     equippedSkin: j['equippedSkin'] as String? ?? 'moth',
+    game: _map(j['game']),
   );
 
   static Map<String, Object?>? _map(Object? o) =>

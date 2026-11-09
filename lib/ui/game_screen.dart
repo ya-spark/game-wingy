@@ -103,15 +103,35 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   WingyGame _ensureGame(Services s) {
     final existing = _game;
     if (existing != null) return existing;
+    // An unfinished run (autosave) comes back paused; a bad save is dropped.
+    WingyRun? restored;
+    final saved = widget.game == null ? s.profile.data.game : null;
+    if (saved != null) {
+      restored = WingyRun.restore(saved, bestScore: s.profile.data.bestScore);
+      if (restored == null) s.profile.saveGame(null);
+    }
     final game =
         widget.game ??
-        WingyGame(run: _newRun(s), reduceMotion: s.profile.data.reduceMotion);
+        WingyGame(
+          run: restored ?? _newRun(s),
+          reduceMotion: s.profile.data.reduceMotion,
+        );
+    if (restored != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Game resumed')));
+        _pause();
+      });
+    }
     game.onChanged = () {
       if (!mounted) return;
       setState(() {});
     };
     game.onEvent = (e) {
       _playEventAudio(s, game, e);
+      _autosaveOn(s, game, e);
       if (!s.profile.data.vibrationOn) return;
       if (e.type == RunEventType.perfect) HapticFeedback.lightImpact();
       if (e.type == RunEventType.hit) HapticFeedback.mediumImpact();
@@ -130,6 +150,31 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _audio.startAmbience();
     _audio.voice('get_ready');
     return _game = game;
+  }
+
+  /// Saves the run after each pass or orb (the moments that change the score) and clears the
+  /// save when the run ends, so Back, a call or a kill never loses it.
+  void _autosaveOn(Services s, WingyGame game, RunEvent e) {
+    if (widget.game != null) return;
+    switch (e.type) {
+      case RunEventType.hit:
+        s.profile.saveGame(null);
+      case RunEventType.pass ||
+          RunEventType.perfect ||
+          RunEventType.shatter ||
+          RunEventType.orb:
+        _autosave(s, game);
+      default:
+        break;
+    }
+  }
+
+  void _autosave(Services s, WingyGame game) {
+    if (widget.game != null) return;
+    final run = game.run;
+    if (run.phase == RunPhase.playing && !run.isDead) {
+      s.profile.saveGame(run.toJson());
+    }
   }
 
   /// Perfect-pass streak lengths that earn a narrator line, highest first.
@@ -219,6 +264,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _quit(Services s) async {
+    await s.profile.saveGame(null);
     await _finishGame(s);
     if (mounted) Navigator.of(context).pop();
   }
@@ -231,6 +277,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     if (game.run.isDead) return;
     final s = ServicesScope.of(context);
     game.pause();
+    _autosave(s, game);
     _audio.pauseAmbience();
     _pauseOpen = true;
     final action = await showDialog<String>(
@@ -424,7 +471,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final dashState = run.isDashing
         ? 'active'
         : (run.canDash ? 'ready' : 'off');
-    return Scaffold(
+    final scaffold = Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
@@ -534,6 +581,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           ),
         ],
       ),
+    );
+    // Back pauses (the pause dialog offers Resume or Quit) instead of ending the run.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _pause();
+      },
+      child: scaffold,
     );
   }
 }
