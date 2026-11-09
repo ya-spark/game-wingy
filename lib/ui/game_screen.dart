@@ -14,6 +14,7 @@ import '../game/flame/wingy_game.dart';
 import '../game/rules/wingy_run.dart';
 import '../game/rules/world.dart';
 import 'game_over_panel.dart';
+import 'routes.dart';
 import 'share_card.dart';
 import 'test_ids.dart';
 import 'widgets.dart';
@@ -364,6 +365,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             ),
             Text('Best ${run.bestScore}', key: TestIds.gameOverBest),
             Text(_medalName(run.medal), key: TestIds.gameOverMedal),
+            if (!s.profile.data.adsRemoved)
+              RemoveAdsPill(
+                key: TestIds.gameOverRemoveAds,
+                onPressed: () => Navigator.of(ctx).pushNamed(AppRoutes.shop),
+              ),
           ],
           extraButton: GameOverButton(
             key: TestIds.gameOverRefill,
@@ -753,6 +759,13 @@ class _RefillSheet extends StatelessWidget {
             Text(
               'Start the next run with a full Glow Dash',
               style: Theme.of(context).textTheme.titleMedium,
+            ),
+            // What the power does, readable before spending anything.
+            Text(
+              'Glow Dash is a short burst of speed that smashes through '
+              'spires without a scratch.',
+              key: TestIds.gameRefillDescription,
+              textAlign: TextAlign.center,
             ),
             FilledButton.icon(
               key: TestIds.gameRefillCoins,
