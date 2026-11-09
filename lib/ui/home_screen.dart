@@ -97,11 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, box) {
-                              final offer = !profile.data.adsRemoved;
-                              final (heroH, gap) = homeLayout(
-                                box.maxHeight,
-                                removeAdsOffer: offer,
-                              );
+                              final (heroH, gap) = homeLayout(box.maxHeight);
                               return Center(
                                 child: SingleChildScrollView(
                                   child: Column(
@@ -161,12 +157,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                             ),
                                         ],
                                       ),
-                                      if (offer)
-                                        RemoveAdsPill(
-                                          key: TestIds.homeRemoveAds,
-                                          onPressed: () =>
-                                              _open(AppRoutes.shop),
-                                        ),
                                       const SizedBox(height: 8),
                                       MenuButton(
                                         key: TestIds.homePlay,
